@@ -1,0 +1,57 @@
+{% extends "_layouts/cp" %}
+{% set title = "Synthese Engine - Tools" %}
+{% set selectedSubnavItem = "tools" %}
+
+{% block content %}
+    <div class="pane">
+        <h2>Verbindingen testen</h2>
+        <p class="light">Controleert OpenAI (embeddings), Supabase (vector-store) en Gemini (synthese).</p>
+        <button type="button" id="se-test-btn" class="btn">Test verbindingen</button>
+        <div id="se-test-result" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="pane" style="margin-top:24px;">
+        <h2>Herindexeren</h2>
+        <p class="light">Zet alle geconfigureerde, in aanmerking komende entries in de wachtrij voor (her)indexering. De queue-worker moet draaien.</p>
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('synthese-engine/cp/reindex') }}
+            {{ redirectInput('synthese-engine/tools') }}
+            <button type="submit" class="btn submit">Volledige herindex starten</button>
+        </form>
+    </div>
+
+    <div class="pane" style="margin-top:24px;">
+        <h2>Vector-store legen</h2>
+        <p class="light">Verwijdert alle chunks uit Supabase. Alleen nodig bij een schema-wijziging of volledige rebuild.</p>
+        <form method="post" accept-charset="UTF-8" onsubmit="return confirm('Alle chunks verwijderen?');">
+            {{ csrfInput() }}
+            {{ actionInput('synthese-engine/cp/truncate') }}
+            {{ redirectInput('synthese-engine/tools') }}
+            <button type="submit" class="btn">Alle chunks verwijderen</button>
+        </form>
+    </div>
+
+    <div class="pane" style="margin-top:24px;">
+        <h2>Supabase-setup-SQL</h2>
+        <p class="light">Gegenereerd uit de huidige instellingen. Draai dit eenmalig in de Supabase SQL-editor.</p>
+        <pre style="max-height:360px;overflow:auto;">{{ sql }}</pre>
+    </div>
+
+    {% js %}
+        document.getElementById('se-test-btn').addEventListener('click', function() {
+            var out = document.getElementById('se-test-result');
+            out.textContent = 'Bezig...';
+            Craft.sendActionRequest('POST', 'synthese-engine/cp/test-connection')
+                .then(function(r) {
+                    var d = r.data;
+                    function line(name, res) {
+                        var ok = res && res.success;
+                        return '<div>' + (ok ? '✅' : '❌') + ' ' + name + (ok ? '' : ' - ' + (res && res.error ? res.error : 'fout')) + '</div>';
+                    }
+                    out.innerHTML = line('OpenAI', d.embedding) + line('Supabase', d.vector) + line('Gemini', d.synthesis);
+                })
+                .catch(function() { out.textContent = 'Test mislukt.'; });
+        });
+    {% endjs %}
+{% endblock %}

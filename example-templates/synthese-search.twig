@@ -1,0 +1,57 @@
+{#
+    Eenvoudige, ongestylede zoekweergave. Kopieer naar je eigen templates en
+    style met je eigen CSS/framework. Vereist Alpine.js (of vervang door je
+    eigen JS). Roept POST craft.synthese.searchUrl aan met {query}.
+#}
+<div x-data="syntheseSearch({ url: '{{ craft.synthese.searchUrl }}' })">
+    <form @submit.prevent="search()">
+        <input type="search" x-model="query" placeholder="Stel een vraag..." minlength="3" maxlength="500" required>
+        <button type="submit" :disabled="loading" x-text="loading ? 'Bezig...' : 'Zoeken'"></button>
+    </form>
+
+    <template x-if="error">
+        <p x-text="error"></p>
+    </template>
+
+    <template x-if="result">
+        <div>
+            <p x-text="result.answer"></p>
+            <template x-if="result.sources && result.sources.length">
+                <ol>
+                    <template x-for="src in result.sources" :key="src.number">
+                        <li><a :href="src.url" x-text="src.title"></a></li>
+                    </template>
+                </ol>
+            </template>
+        </div>
+    </template>
+</div>
+
+{% js %}
+function syntheseSearch(config) {
+    return {
+        query: '',
+        loading: false,
+        result: null,
+        error: null,
+        async search() {
+            if (this.query.trim().length < 3) return;
+            this.loading = true; this.error = null; this.result = null;
+            try {
+                const res = await fetch(config.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ query: this.query }),
+                });
+                const data = await res.json();
+                if (data.success) { this.result = data; }
+                else { this.error = data.error || 'Er ging iets mis.'; }
+            } catch (e) {
+                this.error = 'Er ging iets mis.';
+            } finally {
+                this.loading = false;
+            }
+        },
+    };
+}
+{% endjs %}

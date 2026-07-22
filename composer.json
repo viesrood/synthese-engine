@@ -1,0 +1,39 @@
+{
+  "name": "viesrood/synthese-engine",
+  "description": "AI-gedreven semantische zoekfunctie voor Craft CMS: hybride vector- en full-text-search met LLM-synthese en bronvermelding.",
+  "type": "craft-plugin",
+  "license": "MIT",
+  "keywords": [
+    "craft",
+    "cms",
+    "craftcms",
+    "craft-plugin",
+    "search",
+    "ai",
+    "vector-search",
+    "embeddings",
+    "rag",
+    "supabase"
+  ],
+  "support": {
+    "source": "https://github.com/viesrood/synthese-engine",
+    "issues": "https://github.com/viesrood/synthese-engine/issues"
+  },
+  "require": {
+    "php": ">=8.2",
+    "craftcms/cms": "^5.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "viesrood\\synthese\\": "src/"
+    }
+  },
+  "extra": {
+    "handle": "synthese-engine",
+    "name": "Synthese Engine",
+    "developer": "Viesrood",
+    "documentationUrl": "https://github.com/viesrood/synthese-engine/blob/main/README.md",
+    "class": "viesrood\\synthese\\Plugin",
+    "schemaVersion": "1.0.0"
+  }
+}

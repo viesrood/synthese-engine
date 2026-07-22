@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Synthese Engine">
+  <circle cx="44" cy="44" r="28" fill="none" stroke="currentColor" stroke-width="8"/>
+  <line x1="64" y1="64" x2="88" y2="88" stroke="currentColor" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="34" cy="40" r="4.5" fill="currentColor"/>
+  <circle cx="54" cy="34" r="4.5" fill="currentColor"/>
+  <circle cx="52" cy="54" r="4.5" fill="currentColor"/>
+  <path d="M34 40 L54 34 M54 34 L52 54 M52 54 L34 40" stroke="currentColor" stroke-width="2.5" fill="none"/>
+</svg>
