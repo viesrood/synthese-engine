@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 - Unreleased
+## 1.0.0 - 2026-07-22
 
 ### Added
 - Initial release: a reusable Craft 5 plugin, merged from the two
