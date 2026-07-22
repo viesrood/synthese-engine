@@ -11,12 +11,12 @@ use viesrood\synthese\Plugin;
 use yii\console\ExitCode;
 
 /**
- * Indexeer entries in de vector-store.
+ * Index entries in the vector store.
  *
- * synthese-engine/index/all       Alle indexeerbare live-entries
- * synthese-engine/index/section   Een specifieke section
- * synthese-engine/index/entry     Een enkele entry (op id)
- * synthese-engine/index/truncate  Verwijder alle chunks
+ * synthese-engine/index/all       All indexable live entries
+ * synthese-engine/index/section   A specific section
+ * synthese-engine/index/entry     A single entry (by id)
+ * synthese-engine/index/truncate  Delete all chunks
  */
 class IndexController extends Controller
 {
@@ -38,7 +38,7 @@ class IndexController extends Controller
         $sections = !empty($settings->includeSections) ? $settings->includeSections : array_keys($settings->fieldConfig);
 
         if (empty($sections)) {
-            $this->stderr("Geen te indexeren sections geconfigureerd.\n", Console::FG_RED);
+            $this->stderr("No indexable sections configured.\n", Console::FG_RED);
             return ExitCode::CONFIG;
         }
 
@@ -54,7 +54,7 @@ class IndexController extends Controller
     {
         $entry = Entry::find()->id($id)->status(null)->one();
         if (!$entry) {
-            $this->stderr("Entry {$id} niet gevonden.\n", Console::FG_RED);
+            $this->stderr("Entry {$id} not found.\n", Console::FG_RED);
             return ExitCode::DATAERR;
         }
 
@@ -65,12 +65,12 @@ class IndexController extends Controller
 
     public function actionTruncate(): int
     {
-        if (!$this->confirm('Alle chunks uit de vector-store verwijderen?')) {
+        if (!$this->confirm('Delete all chunks from the vector store?')) {
             return ExitCode::OK;
         }
         Plugin::$plugin->vector->truncate();
         Plugin::$plugin->cache->invalidate();
-        $this->stdout("Vector-store geleegd.\n", Console::FG_GREEN);
+        $this->stdout("Vector store emptied.\n", Console::FG_GREEN);
         return ExitCode::OK;
     }
 
@@ -99,7 +99,7 @@ class IndexController extends Controller
         }
 
         Plugin::$plugin->cache->invalidate();
-        $this->stdout("Klaar: {$totalEntries} entries, {$totalChunks} chunks.\n", Console::FG_GREEN);
+        $this->stdout("Done: {$totalEntries} entries, {$totalChunks} chunks.\n", Console::FG_GREEN);
         return ExitCode::OK;
     }
 

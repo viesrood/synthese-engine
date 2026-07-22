@@ -13,9 +13,9 @@ use yii\web\Response;
 /**
  * SearchController
  *
- * Publieke zoek-API. Beveiligingslaag (bot-detectie, rate-limiting, budget,
- * globale dag-cap) rondom de hybride retrieval-pipeline (embed -> hybrid search
- * -> rerank -> answerability-gate -> synthese).
+ * Public search API. A security layer (bot detection, rate limiting, budget,
+ * global daily cap) around the hybrid retrieval pipeline (embed -> hybrid search
+ * -> rerank -> answerability gate -> synthesis).
  */
 class SearchController extends Controller
 {
@@ -28,27 +28,27 @@ class SearchController extends Controller
         $settings = $plugin->getSettings();
 
         if ($this->isBot($settings->maxRequestsPerMinute)) {
-            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Toegang geweigerd.')], 403);
+            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Access denied.')], 403);
         }
 
         if (!$this->checkRateLimit($settings)) {
-            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Te veel verzoeken. Probeer het later opnieuw.')], 429);
+            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Too many requests. Please try again later.')], 429);
         }
 
         if ($plugin->stats->isDailyBudgetExceeded() || $this->isGlobalDailyLimitReached($settings->maxGlobalRequestsPerDay)) {
-            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Service tijdelijk niet beschikbaar. Probeer het morgen opnieuw.')], 503);
+            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Service temporarily unavailable. Please try again tomorrow.')], 503);
         }
 
         $query = trim((string) (Craft::$app->getRequest()->getBodyParam('query') ?? Craft::$app->getRequest()->getBodyParam('q') ?? ''));
 
         if ($query === '') {
-            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Geen zoekvraag opgegeven.')], 400);
+            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'No search query provided.')], 400);
         }
         if (mb_strlen($query) < 3) {
-            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Zoekvraag moet minimaal 3 tekens bevatten.')], 400);
+            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Search query must be at least 3 characters.')], 400);
         }
         if (mb_strlen($query) > 500) {
-            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Zoekvraag mag maximaal 500 tekens bevatten.')], 400);
+            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Search query may be at most 500 characters.')], 400);
         }
 
         $query = $this->sanitizeQuery($query);
@@ -70,10 +70,10 @@ class SearchController extends Controller
             // 2. Embed
             $queryEmbedding = $plugin->embedding->embed($query);
             if (empty($queryEmbedding)) {
-                return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Er ging iets mis bij het verwerken van je vraag.')], 500);
+                return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Something went wrong processing your question.')], 500);
             }
 
-            // 3. Hybride retrieval
+            // 3. Hybrid retrieval
             $rawChunks = $plugin->vector->hybridSearch($queryEmbedding, $query, $settings->maxChunks);
 
             // 4. Rerank
@@ -81,24 +81,24 @@ class SearchController extends Controller
 
             $metrics = $plugin->stats->computeMetrics($chunks);
 
-            // 5. Answerability-gate: sla de LLM over bij zwakke retrieval.
+            // 5. Answerability gate: skip the LLM on weak retrieval.
             if (!$plugin->answerability->isAnswerable($chunks)) {
                 $plugin->stats->logQuery($query, false, false, $metrics['topScore'], $metrics['scoreSpread'], $metrics['chunksUsed'], (microtime(true) - $startTime) * 1000);
                 return $this->asJson([
                     'success' => true,
-                    'answer' => $settings->notAnswerableMessage,
+                    'answer' => $settings->resolveNotAnswerableMessage(),
                     'sources' => [],
                     'cached' => false,
                 ]);
             }
 
-            // 6. Synthese
+            // 6. Synthesis
             $result = $plugin->synthesis->synthesize($query, $chunks);
             if (!$result['success']) {
-                return $this->jsonResponse(['success' => false, 'error' => $result['error'] ?? Craft::t('synthese-engine', 'Er ging iets mis bij het genereren van het antwoord.')], 500);
+                return $this->jsonResponse(['success' => false, 'error' => $result['error'] ?? Craft::t('synthese-engine', 'Something went wrong generating the answer.')], 500);
             }
 
-            // 7. Cache + globale teller + log
+            // 7. Cache + global counter + log
             $plugin->cache->set($query, [
                 'answer' => $result['answer'],
                 'sources' => $result['sources'],
@@ -114,8 +114,8 @@ class SearchController extends Controller
                 'cached' => false,
             ]);
         } catch (\Throwable $e) {
-            Craft::error('Zoekfout: ' . $e->getMessage(), __METHOD__);
-            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'Er is een fout opgetreden. Probeer het later opnieuw.')], 500);
+            Craft::error('Search error: ' . $e->getMessage(), __METHOD__);
+            return $this->jsonResponse(['success' => false, 'error' => Craft::t('synthese-engine', 'An error occurred. Please try again later.')], 500);
         }
     }
 
@@ -146,7 +146,7 @@ class SearchController extends Controller
                     $parsed = parse_url($url);
                     $source['url'] = ($parsed['path'] ?? '/') . (isset($parsed['query']) ? '?' . $parsed['query'] : '');
                 } catch (\Throwable) {
-                    // origineel behouden
+                    // keep the original
                 }
             }
         }
@@ -224,7 +224,7 @@ class SearchController extends Controller
             }
         }
 
-        // Honeypot: twee requests binnen 500ms van hetzelfde IP = waarschijnlijk automatisch.
+        // Honeypot: two requests within 500ms from the same IP = likely automated.
         $cache = Craft::$app->getCache();
         $ip = $this->getUserIp();
         $timingKey = 'synthese_timing_' . $ip;

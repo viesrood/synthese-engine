@@ -7,12 +7,12 @@ namespace viesrood\synthese\models;
 use craft\base\Model;
 
 /**
- * Synthese Engine instellingen.
+ * Synthese Engine settings.
  *
- * Dit is de enige configuratie-bron van de plugin. Waarden kunnen worden
- * overschreven via een site-config-bestand `config/synthese-engine.php`
- * (Craft merget dat automatisch, incl. multi-environment) of via de
- * CP-instellingenpagina. Secrets (API-keys) horen in `.env`, niet hier.
+ * This is the plugin's single source of configuration. Values can be overridden
+ * with a site config file `config/synthese-engine.php` (Craft merges it
+ * automatically, including multi-environment) or via the CP settings screen.
+ * Secrets (API keys) belong in `.env`, not here.
  */
 class Settings extends Model
 {
@@ -20,109 +20,109 @@ class Settings extends Model
     // Chunking
     // ---------------------------------------------------------------------
 
-    /** Maximale chunk-grootte in tokens (~4 karakters per token). */
+    /** Maximum chunk size in tokens (~4 characters per token). */
     public int $chunkSize = 500;
 
-    /** Overlap tussen chunks in tokens; voorkomt contextverlies op grenzen. */
+    /** Overlap between chunks in tokens; prevents context loss at boundaries. */
     public int $chunkOverlap = 50;
 
     // ---------------------------------------------------------------------
     // Retrieval
     // ---------------------------------------------------------------------
 
-    /** Max. aantal kandidaat-chunks dat de vector-store teruggeeft. */
+    /** Max number of candidate chunks the vector store returns. */
     public int $maxChunks = 20;
 
-    /** Aantal chunks dat na rerank naar de synthese gaat. */
+    /** Number of chunks passed to synthesis after reranking. */
     public int $topK = 8;
 
-    /** Minimale cosine-similarity (0-1) om een chunk als relevant te tellen. */
+    /** Minimum cosine similarity (0-1) for a chunk to count as relevant. */
     public float $similarityThreshold = 0.3;
 
-    /** Versheid-boost venster in dagen (RerankService). */
+    /** Freshness boost window in days (RerankService). */
     public int $freshnessDays = 90;
 
     // ---------------------------------------------------------------------
-    // Answerability-gate
+    // Answerability gate
     // ---------------------------------------------------------------------
 
-    /** Min. aantal chunks boven de drempel voordat de LLM wordt aangeroepen. */
+    /** Min number of chunks above the threshold before calling the LLM. */
     public int $answerabilityMinChunks = 2;
 
-    /** Min. similarity die een chunk moet halen om mee te tellen in de gate. */
+    /** Min similarity a chunk must reach to count towards the gate. */
     public float $answerabilityMinSimilarity = 0.60;
 
     // ---------------------------------------------------------------------
-    // Modellen
+    // Models
     // ---------------------------------------------------------------------
 
-    /** OpenAI embedding-model. */
+    /** OpenAI embedding model. */
     public string $embeddingModel = 'text-embedding-3-small';
 
-    /** Embedding-dimensies (moet overeenkomen met het model en de Supabase-kolom). */
+    /** Embedding dimensions (must match the model and the Supabase column). */
     public int $embeddingDimensions = 1536;
 
-    /** Gemini-model voor synthese. */
+    /** Gemini model for synthesis. */
     public string $synthesisModel = 'gemini-2.5-flash-lite';
 
     // ---------------------------------------------------------------------
-    // Vector-store (Supabase)
+    // Vector store (Supabase)
     // ---------------------------------------------------------------------
 
-    /** Supabase-tabelnaam voor de chunks. */
+    /** Supabase table name for the chunks. */
     public string $supabaseTable = 'content_chunks';
 
-    /** Supabase-RPC voor hybride (vector + full-text) matching. */
+    /** Supabase RPC for hybrid (vector + full-text) matching. */
     public string $matchRpc = 'match_chunks_hybrid';
 
     // ---------------------------------------------------------------------
-    // Content-configuratie (site-specifiek, maar puur data)
+    // Content configuration (site-specific, but pure data)
     // ---------------------------------------------------------------------
 
     /**
-     * Sections om te indexeren. Leeg = alle behalve `excludeSections`.
+     * Sections to index. Empty = all except `excludeSections`.
      * @var string[]
      */
     public array $includeSections = [];
 
-    /** @var string[] Sections om expliciet uit te sluiten. */
+    /** @var string[] Sections to explicitly exclude. */
     public array $excludeSections = [];
 
     /**
-     * Per-section/entry-type veld-extractie.
+     * Per-section/entry-type field extraction.
      * Format: 'handle' => ['fields' => [...], 'matrixFields' => ['matrixHandle' => ['blockField', ...]]].
-     * Speciale pseudo-velden: '_author', '_dateCreated', '_url'.
+     * Special pseudo-fields: '_author', '_dateCreated', '_url'.
      * @var array<string, array>
      */
     public array $fieldConfig = [];
 
-    /** @var string[] Default velden als een section niet in fieldConfig staat. */
+    /** @var string[] Default fields when a section is not in fieldConfig. */
     public array $defaultFields = ['title'];
 
     /**
-     * Optionele semantische context-hint per section-handle, meegeembed
-     * voor betere matching. Bijv. 'news' => 'Dit is een nieuwsbericht.'.
+     * Optional semantic context hint per section handle, embedded along with
+     * the content for better matching. E.g. 'news' => 'This is a news item.'.
      * @var array<string, string>
      */
     public array $sectionContext = [];
 
     /**
-     * Rerank-multipliers per section-handle.
+     * Rerank multipliers per section handle.
      * @var array<string, float>
      */
     public array $sectionBoosts = [];
 
     /**
-     * Sections waarvan entries alleen meetellen in het huidige kalenderjaar
-     * (op basis van postDate en `timezone`).
+     * Sections whose entries only count in the current calendar year
+     * (based on postDate and `timezone`).
      * @var string[]
      */
     public array $currentYearOnlySections = [];
 
     /**
-     * Optionele bron-formatters per section-handle voor de bronnenlijst.
-     * Format: 'handle' => ['urlOverride' => '/pad', 'titleFrom' => 'veldnaam'].
-     * Voor complexere gevallen: gebruik het EVENT_FORMAT_SOURCE-event.
+     * Optional per-section source formatters for the source list.
+     * Format: 'handle' => ['urlOverride' => '/path', 'titleFrom' => 'fieldName'].
+     * For more complex cases: use the EVENT_FORMAT_SOURCE event.
      * @var array<string, array>
      */
     public array $sourceFormatters = [];
@@ -131,71 +131,77 @@ class Settings extends Model
     // Branding / prompt
     // ---------------------------------------------------------------------
 
-    /** Sitenaam die in de system-prompt wordt genoemd. */
-    public string $siteName = 'de website';
+    /** Site name referenced in the system prompt. */
+    public string $siteName = 'the website';
 
     /**
-     * Optionele volledige system-prompt. Leeg = de ingebouwde standaardprompt
-     * (met `siteName` ingevuld) wordt gebruikt.
+     * Optional full system prompt. Empty = the built-in default prompt (with
+     * `siteName` filled in) is used. The built-in prompt is language-neutral:
+     * it answers in the same language as the question.
      */
     public string $systemPrompt = '';
 
-    /** Antwoord als de answerability-gate faalt (geen LLM-call). */
-    public string $notAnswerableMessage = 'Ik heb geen relevante informatie gevonden om je vraag te beantwoorden.';
+    /**
+     * Answer shown when the answerability gate fails (no LLM call).
+     * Empty = a built-in, translatable default is used (so Dutch sites get a
+     * Dutch message via the `nl` translation).
+     */
+    public string $notAnswerableMessage = '';
 
     /**
-     * Frasen die aangeven dat de LLM geen relevant antwoord had; bij een match
-     * worden de bronnen weggelaten.
+     * Phrases that indicate the LLM had no relevant answer; on a match the
+     * sources are omitted. Language-specific: set these to match the language
+     * your content and answers are in.
      * @var string[]
      */
     public array $noInfoPhrases = [
-        'onvoldoende informatie',
-        'geen relevante informatie',
-        'kan ik niet beantwoorden',
-        'niet beantwoord worden',
-        'geen informatie gevonden',
-        'geen antwoord',
-        'niet in de bronnen',
-        'bronnen bevatten geen',
-        'bronnen bieden geen',
+        'insufficient information',
+        'no relevant information',
+        'cannot answer',
+        'could not be answered',
+        'no information found',
+        'no answer',
+        'not in the sources',
+        'sources do not contain',
+        'sources do not provide',
     ];
 
-    /** @var string[] Voorbeeldvragen voor de zoek-UI. */
+    /** @var string[] Example questions for the search UI. */
     public array $exampleQueries = [];
 
     // ---------------------------------------------------------------------
-    // SQL-parameters (voor de gegenereerde Supabase-setup-SQL)
+    // SQL parameters (for the generated Supabase setup SQL)
     // ---------------------------------------------------------------------
 
-    /** PostgreSQL full-text-search-taal (bijv. 'dutch', 'english'). */
-    public string $ftsLanguage = 'dutch';
+    /** PostgreSQL full-text-search language (e.g. 'english', 'dutch'). */
+    public string $ftsLanguage = 'english';
 
-    /** Timezone voor de "huidig jaar"-filter in de RPC. */
-    public string $timezone = 'Europe/Amsterdam';
+    /** Timezone for the "current year" filter in the RPC. */
+    public string $timezone = 'UTC';
 
     // ---------------------------------------------------------------------
     // Caching
     // ---------------------------------------------------------------------
 
-    /** Cache-duur voor antwoorden in seconden; 0 = uit. */
+    /** Cache duration for answers in seconds; 0 = disabled. */
     public int $cacheDuration = 3600;
 
     // ---------------------------------------------------------------------
-    // Indexering
+    // Indexing
     // ---------------------------------------------------------------------
 
-    /** Automatisch (her)indexeren bij entry save/delete. */
+    /** Automatically (re)index on entry save/delete. */
     public bool $autoIndex = true;
 
     // ---------------------------------------------------------------------
     // Routing
     // ---------------------------------------------------------------------
 
-    /** URL-prefix voor de publieke zoek-endpoints (zonder leading slash). */
+    /** URL prefix for the public search endpoints (no leading slash). */
     public string $routePrefix = 'api/synthese';
 
     // ---------------------------------------------------------------------
-    // Rate limiting / kosten
+    // Rate limiting / cost
     // ---------------------------------------------------------------------
 
     public int $maxRequestsPerMinute = 10;
@@ -203,10 +209,10 @@ class Settings extends Model
     public int $maxRequestsPerDay = 100;
     public int $maxGlobalRequestsPerDay = 500;
 
-    /** Dagbudget in USD; 0 = geen limiet. Kan via SYNTHESE_DAILY_BUDGET_USD. */
+    /** Daily budget in USD; 0 = no limit. Can be set via SYNTHESE_DAILY_BUDGET_USD. */
     public float $dailyBudgetUsd = 1.00;
 
-    /** Tokenprijzen per 1M tokens voor de kostenberekening. */
+    /** Token prices per 1M tokens for the cost calculation. */
     public array $pricing = [
         'embedding' => 0.02,
         'synthesisInput' => 0.10,
@@ -222,6 +228,18 @@ class Settings extends Model
     public int $vectorTimeout = 10;
     public int $maxRetries = 3;
     public int $retryBaseDelay = 1;
+
+    /**
+     * The message to show when the answerability gate fails: the configured
+     * value, or a built-in translatable default (so a site's language kicks in
+     * via the translation category).
+     */
+    public function resolveNotAnswerableMessage(): string
+    {
+        return $this->notAnswerableMessage !== ''
+            ? $this->notAnswerableMessage
+            : \Craft::t('synthese-engine', 'I could not find enough information to answer your question.');
+    }
 
     /**
      * @inheritdoc

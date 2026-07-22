@@ -1,44 +1,47 @@
 <?php
 
 /**
- * Synthese Engine - Nederlandse strings (bron-taal).
- * Kopieer deze categorie naar een andere taalmap om te vertalen.
+ * Synthese Engine - Dutch translations.
+ * Maps the English source strings to Dutch.
  */
 
 return [
-    // Search-API
-    'Toegang geweigerd.' => 'Toegang geweigerd.',
-    'Te veel verzoeken. Probeer het later opnieuw.' => 'Te veel verzoeken. Probeer het later opnieuw.',
-    'Service tijdelijk niet beschikbaar. Probeer het morgen opnieuw.' => 'Service tijdelijk niet beschikbaar. Probeer het morgen opnieuw.',
-    'Geen zoekvraag opgegeven.' => 'Geen zoekvraag opgegeven.',
-    'Zoekvraag moet minimaal 3 tekens bevatten.' => 'Zoekvraag moet minimaal 3 tekens bevatten.',
-    'Zoekvraag mag maximaal 500 tekens bevatten.' => 'Zoekvraag mag maximaal 500 tekens bevatten.',
-    'Er ging iets mis bij het verwerken van je vraag.' => 'Er ging iets mis bij het verwerken van je vraag.',
-    'Er ging iets mis bij het genereren van het antwoord.' => 'Er ging iets mis bij het genereren van het antwoord.',
-    'Er is een fout opgetreden. Probeer het later opnieuw.' => 'Er is een fout opgetreden. Probeer het later opnieuw.',
+    // Search API
+    'Access denied.' => 'Toegang geweigerd.',
+    'Too many requests. Please try again later.' => 'Te veel verzoeken. Probeer het later opnieuw.',
+    'Service temporarily unavailable. Please try again tomorrow.' => 'Service tijdelijk niet beschikbaar. Probeer het morgen opnieuw.',
+    'No search query provided.' => 'Geen zoekvraag opgegeven.',
+    'Search query must be at least 3 characters.' => 'Zoekvraag moet minimaal 3 tekens bevatten.',
+    'Search query may be at most 500 characters.' => 'Zoekvraag mag maximaal 500 tekens bevatten.',
+    'Something went wrong processing your question.' => 'Er ging iets mis bij het verwerken van je vraag.',
+    'Something went wrong generating the answer.' => 'Er ging iets mis bij het genereren van het antwoord.',
+    'An error occurred. Please try again later.' => 'Er is een fout opgetreden. Probeer het later opnieuw.',
 
-    // Synthese
-    'AI-service niet geconfigureerd' => 'AI-service niet geconfigureerd',
-    'Geen antwoord ontvangen van AI' => 'Geen antwoord ontvangen van AI',
-    'Er is een fout opgetreden bij het genereren van het antwoord' => 'Er is een fout opgetreden bij het genereren van het antwoord',
-    'Er is een fout opgetreden' => 'Er is een fout opgetreden',
-    'Synthese mislukt na meerdere pogingen' => 'Synthese mislukt na meerdere pogingen',
+    // Synthesis
+    'AI service not configured' => 'AI-service niet geconfigureerd',
+    'No answer received from AI' => 'Geen antwoord ontvangen van AI',
+    'An error occurred while generating the answer' => 'Er is een fout opgetreden bij het genereren van het antwoord',
+    'An error occurred' => 'Er is een fout opgetreden',
+    'Synthesis failed after multiple attempts' => 'Synthese mislukt na meerdere pogingen',
+
+    // Answerability fallback
+    'I could not find enough information to answer your question.' => 'Ik heb onvoldoende informatie gevonden om je vraag te beantwoorden.',
 
     // Chunking (FAQ)
-    'Vraag' => 'Vraag',
-    'Antwoord' => 'Antwoord',
+    'Question' => 'Vraag',
+    'Answer' => 'Antwoord',
 
     // CP
-    'Geen te indexeren sections geconfigureerd.' => 'Geen te indexeren sections geconfigureerd.',
-    '{n} entries in de wachtrij gezet voor indexering.' => '{n} entries in de wachtrij gezet voor indexering.',
-    'Alle chunks verwijderd uit de vector-store.' => 'Alle chunks verwijderd uit de vector-store.',
+    'No indexable sections configured.' => 'Geen te indexeren sections geconfigureerd.',
+    '{n} entries queued for indexing.' => '{n} entries in de wachtrij gezet voor indexering.',
+    'All chunks deleted from the vector store.' => 'Alle chunks verwijderd uit de vector-store.',
 
     // Widget / nav
     'Synthese Engine' => 'Synthese Engine',
-    'Zoekopdrachten (7 dagen)' => 'Zoekopdrachten (7 dagen)',
-    'Beantwoordbaar' => 'Beantwoordbaar',
-    'Cache-hit' => 'Cache-hit',
-    'Gem. duur' => 'Gem. duur',
+    'Searches (7 days)' => 'Zoekopdrachten (7 dagen)',
+    'Answerable' => 'Beantwoordbaar',
+    'Cache hit' => 'Cache-hit',
+    'Avg. duration' => 'Gem. duur',
     'Chunks in index' => 'Chunks in index',
-    'Dashboard openen' => 'Dashboard openen',
+    'Open dashboard' => 'Dashboard openen',
 ];

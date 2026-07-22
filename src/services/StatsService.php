@@ -12,8 +12,8 @@ use viesrood\synthese\Plugin;
 /**
  * StatsService
  *
- * Logging (naar `{{%synthese_logs}}`), kosten-accounting (via de cache) en
- * rapportage voor het dashboard en de widget.
+ * Logging (to `{{%synthese_logs}}`), cost accounting (via the cache) and
+ * reporting for the dashboard and the widget.
  */
 class StatsService extends Component
 {
@@ -22,7 +22,7 @@ class StatsService extends Component
     private const CK_EMBED_TOKENS = 'synthese_embedding_tokens_';
 
     // -----------------------------------------------------------------
-    // Query-logging (DB)
+    // Query logging (DB)
     // -----------------------------------------------------------------
 
     public function logQuery(
@@ -47,7 +47,7 @@ class StatsService extends Component
                 'created_at' => date('Y-m-d H:i:s'),
             ])->execute();
         } catch (\Throwable $e) {
-            Craft::warning('StatsService::logQuery mislukt: ' . $e->getMessage(), 'synthese-engine');
+            Craft::warning('StatsService::logQuery failed: ' . $e->getMessage(), 'synthese-engine');
         }
     }
 
@@ -71,7 +71,7 @@ class StatsService extends Component
     }
 
     // -----------------------------------------------------------------
-    // Kosten-accounting (cache)
+    // Cost accounting (cache)
     // -----------------------------------------------------------------
 
     public function logEmbeddingUsage(int $tokens, int $batchSize): void
@@ -118,7 +118,7 @@ class StatsService extends Component
     }
 
     // -----------------------------------------------------------------
-    // Rapportage
+    // Reporting
     // -----------------------------------------------------------------
 
     public function getTodayStats(): array
@@ -144,7 +144,7 @@ class StatsService extends Component
     }
 
     /**
-     * 7-daagse rollup uit de logtabel (voor de dashboard-widget).
+     * 7-day rollup from the log table (for the dashboard widget).
      */
     public function getRollup(int $days = 7): array
     {
@@ -172,7 +172,7 @@ class StatsService extends Component
                 'avgDurationMs' => (int) round((float) ($row['avgDuration'] ?? 0)),
             ];
         } catch (\Throwable $e) {
-            Craft::warning('StatsService::getRollup mislukt: ' . $e->getMessage(), 'synthese-engine');
+            Craft::warning('StatsService::getRollup failed: ' . $e->getMessage(), 'synthese-engine');
             return ['days' => $days, 'total' => 0, 'answerable' => 0, 'cached' => 0, 'answerableRate' => 0, 'cacheHitRate' => 0, 'avgDurationMs' => 0];
         }
     }

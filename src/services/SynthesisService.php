@@ -15,12 +15,12 @@ use viesrood\synthese\Plugin;
 /**
  * SynthesisService
  *
- * Genereert een samenhangend, geciteerd antwoord via Google Gemini op basis van
- * de opgehaalde chunks en een system-prompt.
+ * Generates a coherent, cited answer via Google Gemini based on the retrieved
+ * chunks and a system prompt.
  */
 class SynthesisService extends Component
 {
-    /** @event FormatSourceEvent Kans om per bron de titel/URL aan te passen. */
+    /** @event FormatSourceEvent Opportunity to adjust the title/URL per source. */
     public const EVENT_FORMAT_SOURCE = 'formatSource';
 
     private const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -28,7 +28,7 @@ class SynthesisService extends Component
     private ?Client $client = null;
 
     /**
-     * @param array[] $chunks Herwogen chunks
+     * @param array[] $chunks Reranked chunks
      * @return array
      */
     public function synthesize(string $query, array $chunks): array
@@ -38,14 +38,14 @@ class SynthesisService extends Component
         $apiKey = App::env('GEMINI_API_KEY');
 
         if (!$apiKey) {
-            Craft::error('GEMINI_API_KEY niet geconfigureerd', __METHOD__);
-            return ['success' => false, 'error' => Craft::t('synthese-engine', 'AI-service niet geconfigureerd')];
+            Craft::error('GEMINI_API_KEY not configured', __METHOD__);
+            return ['success' => false, 'error' => Craft::t('synthese-engine', 'AI service not configured')];
         }
 
         if (empty($chunks)) {
             return [
                 'success' => true,
-                'answer' => $settings->notAnswerableMessage,
+                'answer' => $settings->resolveNotAnswerableMessage(),
                 'sources' => [],
                 'tokensInput' => 0,
                 'tokensOutput' => 0,
@@ -83,8 +83,8 @@ class SynthesisService extends Component
                 $answer = $this->extractAnswer($data);
 
                 if ($answer === null) {
-                    Craft::warning('Gemini gaf een leeg antwoord', __METHOD__);
-                    return ['success' => false, 'error' => Craft::t('synthese-engine', 'Geen antwoord ontvangen van AI')];
+                    Craft::warning('Gemini returned an empty answer', __METHOD__);
+                    return ['success' => false, 'error' => Craft::t('synthese-engine', 'No answer received from AI')];
                 }
 
                 $tokensInput = $data['usageMetadata']['promptTokenCount'] ?? 0;
@@ -110,19 +110,19 @@ class SynthesisService extends Component
                     sleep($baseDelay * (2 ** $attempt));
                     continue;
                 }
-                Craft::error("Gemini API-fout: {$e->getMessage()}", __METHOD__);
-                return ['success' => false, 'error' => Craft::t('synthese-engine', 'Er is een fout opgetreden bij het genereren van het antwoord')];
+                Craft::error("Gemini API error: {$e->getMessage()}", __METHOD__);
+                return ['success' => false, 'error' => Craft::t('synthese-engine', 'An error occurred while generating the answer')];
             } catch (\Throwable $e) {
-                Craft::error("Synthese-fout: {$e->getMessage()}", __METHOD__);
+                Craft::error("Synthesis error: {$e->getMessage()}", __METHOD__);
                 if ($attempt < $maxRetries - 1) {
                     sleep($baseDelay * (2 ** $attempt));
                     continue;
                 }
-                return ['success' => false, 'error' => Craft::t('synthese-engine', 'Er is een fout opgetreden')];
+                return ['success' => false, 'error' => Craft::t('synthese-engine', 'An error occurred')];
             }
         }
 
-        return ['success' => false, 'error' => Craft::t('synthese-engine', 'Synthese mislukt na meerdere pogingen')];
+        return ['success' => false, 'error' => Craft::t('synthese-engine', 'Synthesis failed after multiple attempts')];
     }
 
     private function buildSystemPrompt(string $custom, string $siteName): string
@@ -132,18 +132,18 @@ class SynthesisService extends Component
         }
 
         return <<<PROMPT
-Je bent een kennisassistent die vragen beantwoordt op basis van de aangeleverde bronnen van {$siteName}.
+You are a knowledge assistant that answers questions based on the provided sources from {$siteName}.
 
-INSTRUCTIES:
-1. Baseer je antwoord UITSLUITEND op de gegeven bronnen
-2. Gebruik inline citations: [1], [2], etc. verwijzend naar de bronnummers
-3. Als de bronnen onvoldoende informatie bevatten, zeg dit eerlijk
-4. Als bronnen elkaar tegenspreken, benoem dit
-5. Schrijf in het Nederlands
-6. Wees beknopt maar volledig (150-300 woorden)
-7. Begin direct met het antwoord, geen inleidende zinnen als "Op basis van..."
-8. Gebruik geen markdown formatting, alleen platte tekst met [n] citations
-9. Geef geen informatie die niet in de bronnen staat
+INSTRUCTIONS:
+1. Base your answer SOLELY on the given sources
+2. Use inline citations: [1], [2], etc. referring to the source numbers
+3. If the sources contain insufficient information, say so honestly
+4. If sources contradict each other, point this out
+5. Write your answer in the same language as the question
+6. Be concise but complete (150-300 words)
+7. Start directly with the answer, no introductory phrases like "Based on..."
+8. Do not use markdown formatting, only plain text with [n] citations
+9. Do not provide information that is not in the sources
 PROMPT;
     }
 
@@ -152,7 +152,7 @@ PROMPT;
         $formatted = [];
         foreach ($chunks as $index => $chunk) {
             $num = $index + 1;
-            $title = $chunk['entry_title'] ?? $chunk['title'] ?? 'Onbekend';
+            $title = $chunk['entry_title'] ?? $chunk['title'] ?? 'Unknown';
             $content = $chunk['content'] ?? $chunk['text'] ?? '';
             $formatted[] = "[{$num}] {$title}\n{$content}";
         }
@@ -164,10 +164,10 @@ PROMPT;
         return <<<PROMPT
 {$systemPrompt}
 
-BRONNEN:
+SOURCES:
 {$chunks}
 
-VRAAG: {$query}
+QUESTION: {$query}
 PROMPT;
     }
 
@@ -210,10 +210,10 @@ PROMPT;
             }
 
             $section = $chunk['section'] ?? null;
-            $title = $chunk['entry_title'] ?? $chunk['title'] ?? 'Onbekend';
+            $title = $chunk['entry_title'] ?? $chunk['title'] ?? 'Unknown';
             $url = $this->toRelativeUrl($chunk['entry_url'] ?? $chunk['url'] ?? null);
 
-            // Config-gestuurde bron-formatter per sectie.
+            // Config-driven source formatter per section.
             if ($section !== null && isset($formatters[$section])) {
                 $fmt = $formatters[$section];
                 if (!empty($fmt['urlOverride'])) {
@@ -231,7 +231,7 @@ PROMPT;
                 'section' => $section,
             ];
 
-            // Extension point: consumer kan titel/URL nog aanpassen.
+            // Extension point: a consumer can still adjust the title/URL.
             if ($this->hasEventHandlers(self::EVENT_FORMAT_SOURCE)) {
                 $event = new FormatSourceEvent(['chunk' => $chunk, 'section' => (string) $section, 'source' => $source]);
                 $this->trigger(self::EVENT_FORMAT_SOURCE, $event);
@@ -280,14 +280,14 @@ PROMPT;
         $apiKey = App::env('GEMINI_API_KEY');
 
         if (!$apiKey) {
-            return ['success' => false, 'error' => 'GEMINI_API_KEY niet geconfigureerd'];
+            return ['success' => false, 'error' => 'GEMINI_API_KEY not configured'];
         }
 
         try {
             $start = microtime(true);
             $response = $this->getClient(10)->post(self::GEMINI_API_URL . "/{$model}:generateContent?key={$apiKey}", [
                 'json' => [
-                    'contents' => [['parts' => [['text' => 'Zeg alleen "OK"']]]],
+                    'contents' => [['parts' => [['text' => 'Reply with only "OK"']]]],
                     'generationConfig' => ['maxOutputTokens' => 10],
                 ],
             ]);

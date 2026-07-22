@@ -14,7 +14,7 @@ use viesrood\synthese\Plugin;
 /**
  * EmbeddingService
  *
- * Zet tekst om naar vector-embeddings via de OpenAI Embeddings API.
+ * Converts text into vector embeddings via the OpenAI Embeddings API.
  */
 class EmbeddingService extends Component
 {
@@ -41,7 +41,7 @@ class EmbeddingService extends Component
     }
 
     /**
-     * Embed een enkele tekst.
+     * Embed a single text.
      *
      * @return float[]
      */
@@ -52,8 +52,8 @@ class EmbeddingService extends Component
     }
 
     /**
-     * Embed meerdere teksten. Splitst automatisch in batches van max 100
-     * (OpenAI-limiet).
+     * Embed multiple texts. Automatically splits into batches of at most 100
+     * (OpenAI limit).
      *
      * @param string[] $texts
      * @return float[][]
@@ -84,7 +84,7 @@ class EmbeddingService extends Component
         $lastException = null;
 
         $payload = ['model' => $model, 'input' => $texts];
-        // text-embedding-3-* ondersteunt een expliciete dimensie-parameter.
+        // text-embedding-3-* supports an explicit dimensions parameter.
         if (str_starts_with($model, 'text-embedding-3')) {
             $payload['dimensions'] = $dimensions;
         }
@@ -111,21 +111,21 @@ class EmbeddingService extends Component
         }
 
         throw new \RuntimeException(
-            'EmbeddingService: max retries bereikt. Laatste fout: ' . ($lastException?->getMessage() ?? 'onbekend'),
+            'EmbeddingService: max retries reached. Last error: ' . ($lastException?->getMessage() ?? 'unknown'),
             0,
             $lastException
         );
     }
 
     /**
-     * Testverbinding voor diagnostiek.
+     * Test connection for diagnostics.
      *
      * @return array{success: bool, error?: string, dimensions?: int}
      */
     public function testConnection(): array
     {
         if (!App::env('OPENAI_API_KEY')) {
-            return ['success' => false, 'error' => 'OPENAI_API_KEY niet geconfigureerd'];
+            return ['success' => false, 'error' => 'OPENAI_API_KEY not configured'];
         }
 
         try {

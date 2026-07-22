@@ -1,35 +1,35 @@
 <?php
 
 /**
- * Voorbeeld: config/synthese-engine.php
+ * Example: config/synthese-engine.php
  *
- * Kopieer naar je project onder `config/synthese-engine.php` en pas de sections/
- * velden aan. Craft merget dit over de plugin-instellingen (ondersteunt
- * multi-environment: gebruik '*' voor alle omgevingen of specifieke env-keys).
+ * Copy this into your project at `config/synthese-engine.php` and adjust the
+ * sections/fields. Craft merges it over the plugin settings (supports
+ * multi-environment: use '*' for all environments or specific env keys).
  *
- * Alleen keys die je opneemt overschrijven de standaard/CP-waarden.
+ * Only the keys you include override the default/CP values.
  */
 
 use craft\helpers\App;
 
 return [
-    // Merk / prompt
-    'siteName' => 'Mijn Site',
-    // 'systemPrompt' => '...',            // leeg = ingebouwde standaardprompt
-    'notAnswerableMessage' => 'Ik heb hier onvoldoende informatie over gevonden. Neem gerust contact op.',
+    // Branding / prompt
+    'siteName' => 'My Site',
+    // 'systemPrompt' => '...',            // empty = built-in default prompt
+    'notAnswerableMessage' => 'I could not find enough information about this. Feel free to get in touch.',
     'exampleQueries' => [
-        'Wat zijn jullie openingstijden?',
-        'Welke diensten bieden jullie aan?',
+        'What are your opening hours?',
+        'What services do you offer?',
     ],
 
-    // Index-scope
+    // Index scope
     'includeSections' => ['pages', 'articles', 'services'],
     'excludeSections' => [],
 
-    // Alleen huidig kalenderjaar (bv. nieuws/actueel)
+    // Current calendar year only (e.g. news/topical)
     'currentYearOnlySections' => ['news'],
 
-    // Per-section veld-extractie
+    // Per-section field extraction
     'fieldConfig' => [
         'pages' => [
             'fields' => ['title', 'summary'],
@@ -48,13 +48,13 @@ return [
         ],
     ],
 
-    // Semantische context-hints (meegeembed)
+    // Semantic context hints (embedded with the content)
     'sectionContext' => [
-        'articles' => 'Dit is een artikel.',
-        'services' => 'Dit beschrijft een dienst.',
+        'articles' => 'This is an article.',
+        'services' => 'This describes a service.',
     ],
 
-    // Rerank-boosts per section
+    // Rerank boosts per section
     'sectionBoosts' => [
         'services' => 1.3,
         'pages' => 1.1,
@@ -62,15 +62,15 @@ return [
         'news' => 0.9,
     ],
 
-    // Bron-formatters (optioneel): pas URL/titel per section aan
+    // Source formatters (optional): override URL/title per section
     // 'sourceFormatters' => [
     //     'quotes' => ['urlOverride' => '/quotes', 'titleFrom' => 'text'],
     // ],
 
-    // SQL-parameters (moeten matchen met de gedraaide Supabase-SQL)
-    'ftsLanguage' => 'dutch',
-    'timezone' => 'Europe/Amsterdam',
+    // SQL parameters (must match the Supabase SQL you ran)
+    'ftsLanguage' => 'english',
+    'timezone' => 'UTC',
 
-    // Kosten
+    // Cost
     'dailyBudgetUsd' => (float) App::env('SYNTHESE_DAILY_BUDGET_USD') ?: 1.00,
 ];

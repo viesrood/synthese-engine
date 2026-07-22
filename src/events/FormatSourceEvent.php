@@ -7,19 +7,19 @@ namespace viesrood\synthese\events;
 use yii\base\Event;
 
 /**
- * Wordt getriggerd bij het opbouwen van een bron-item voor de bronnenlijst,
- * zodat consumer-sites per sectie de titel/URL kunnen aanpassen (vervangt
- * eerdere hardcoded sectie-specifieke logica in de plugincode).
+ * Triggered when building a source item for the sources list, so consumer
+ * sites can customize the title/URL per section (replaces earlier hardcoded
+ * section-specific logic in the plugin code).
  */
 class FormatSourceEvent extends Event
 {
-    /** De ruwe chunk-rij uit de vector-store. @var array */
+    /** The raw chunk row from the vector store. @var array */
     public array $chunk = [];
 
     public string $section = '';
 
     /**
-     * Het bron-item dat wordt teruggegeven; pas 'title'/'url' aan waar nodig.
+     * The source item that is returned; adjust 'title'/'url' where needed.
      * @var array{number?: int, title: string, url: ?string, section: ?string}
      */
     public array $source = [];

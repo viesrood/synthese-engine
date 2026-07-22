@@ -15,8 +15,8 @@ use yii\web\Response;
 /**
  * CpController
  *
- * Control-panel-schermen (dashboard, tools) en admin-acties (connectie-test,
- * herindexeren, truncaten, SQL genereren). Admin-only.
+ * Control panel screens (dashboard, tools) and admin actions (connection test,
+ * reindex, truncate, SQL generation). Admin only.
  */
 class CpController extends Controller
 {
@@ -74,7 +74,7 @@ class CpController extends Controller
             : array_keys($settings->fieldConfig);
 
         if (empty($sections)) {
-            Craft::$app->getSession()->setError(Craft::t('synthese-engine', 'Geen te indexeren sections geconfigureerd.'));
+            Craft::$app->getSession()->setError(Craft::t('synthese-engine', 'No indexable sections configured.'));
             return $this->redirectToPostedUrl();
         }
 
@@ -90,7 +90,7 @@ class CpController extends Controller
             }
         }
 
-        Craft::$app->getSession()->setNotice(Craft::t('synthese-engine', '{n} entries in de wachtrij gezet voor indexering.', ['n' => $count]));
+        Craft::$app->getSession()->setNotice(Craft::t('synthese-engine', '{n} entries queued for indexing.', ['n' => $count]));
         return $this->redirectToPostedUrl();
     }
 
@@ -99,7 +99,7 @@ class CpController extends Controller
         $this->requirePostRequest();
         Plugin::$plugin->vector->truncate();
         Plugin::$plugin->cache->invalidate();
-        Craft::$app->getSession()->setNotice(Craft::t('synthese-engine', 'Alle chunks verwijderd uit de vector-store.'));
+        Craft::$app->getSession()->setNotice(Craft::t('synthese-engine', 'All chunks deleted from the vector store.'));
         return $this->redirectToPostedUrl();
     }
 }

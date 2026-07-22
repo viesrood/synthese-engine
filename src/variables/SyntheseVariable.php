@@ -9,7 +9,7 @@ use craft\helpers\App;
 use viesrood\synthese\Plugin;
 
 /**
- * Twig-variable: craft.synthese.*
+ * Twig variable: craft.synthese.*
  */
 class SyntheseVariable
 {
@@ -56,7 +56,7 @@ class SyntheseVariable
     }
 
     /**
-     * Alleen voor admins (dashboard/diagnostiek).
+     * Admins only (dashboard/diagnostics).
      */
     public function stats(): ?array
     {

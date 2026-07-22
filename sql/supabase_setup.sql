@@ -1,19 +1,20 @@
 -- =============================================================================
--- Synthese Engine - Supabase setup (REFERENTIE)
+-- Synthese Engine - Supabase setup (REFERENCE)
 -- =============================================================================
--- Draai NIET dit bestand klakkeloos. Genereer de SQL die exact matcht met jouw
--- instellingen (tabel-/RPC-naam, embedding-dimensies, FTS-taal, timezone en de
--- "huidig jaar"-secties):
+-- Do NOT run this file blindly. Generate the SQL that exactly matches your
+-- settings (table/RPC name, embedding dimensions, FTS language, timezone and the
+-- "current year" sections):
 --
 --     php craft synthese-engine/setup/supabase
 --
--- of via CP -> Synthese Engine -> Tools. Plak de output in de Supabase SQL-editor.
+-- or via CP -> Synthese Engine -> Tools. Paste the output into the Supabase SQL
+-- editor.
 --
--- Onderstaand een voorbeeld-uitvoer (FTS-taal 'dutch', geen jaar-filter,
--- 1536 dimensies, tabel content_chunks, RPC match_chunks_hybrid) puur ter
--- illustratie van wat er wordt aangemaakt: pgvector-extensie, de chunk-tabel,
--- een HNSW-index, een gegenereerde FTS-kolom + GIN-index, de hybride RRF-RPC en
--- RLS-grants voor uitsluitend de service_role.
+-- Below is example output (FTS language 'english', no year filter, 1536
+-- dimensions, table content_chunks, RPC match_chunks_hybrid) purely to
+-- illustrate what gets created: the pgvector extension, the chunk table, an HNSW
+-- index, a generated FTS column + GIN index, the hybrid RRF RPC and RLS grants
+-- for the service_role only.
 -- =============================================================================
 
 CREATE SCHEMA IF NOT EXISTS extensions;
@@ -36,5 +37,5 @@ CREATE TABLE IF NOT EXISTS public.content_chunks (
     UNIQUE (entry_id, site_id, chunk_index)
 );
 
--- ... HNSW-index, FTS-kolom/index, match_chunks_hybrid-RPC en RLS-grants:
--- zie de gegenereerde output van synthese-engine/setup/supabase.
+-- ... HNSW index, FTS column/index, match_chunks_hybrid RPC and RLS grants:
+-- see the generated output of synthese-engine/setup/supabase.

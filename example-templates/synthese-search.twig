@@ -1,12 +1,12 @@
 {#
-    Eenvoudige, ongestylede zoekweergave. Kopieer naar je eigen templates en
-    style met je eigen CSS/framework. Vereist Alpine.js (of vervang door je
-    eigen JS). Roept POST craft.synthese.searchUrl aan met {query}.
+    Simple, unstyled search view. Copy into your own templates and style with
+    your own CSS/framework. Requires Alpine.js (or replace with your own JS).
+    Calls POST craft.synthese.searchUrl with {query}.
 #}
 <div x-data="syntheseSearch({ url: '{{ craft.synthese.searchUrl }}' })">
     <form @submit.prevent="search()">
-        <input type="search" x-model="query" placeholder="Stel een vraag..." minlength="3" maxlength="500" required>
-        <button type="submit" :disabled="loading" x-text="loading ? 'Bezig...' : 'Zoeken'"></button>
+        <input type="search" x-model="query" placeholder="Ask a question..." minlength="3" maxlength="500" required>
+        <button type="submit" :disabled="loading" x-text="loading ? 'Working...' : 'Search'"></button>
     </form>
 
     <template x-if="error">
@@ -45,9 +45,9 @@ function syntheseSearch(config) {
                 });
                 const data = await res.json();
                 if (data.success) { this.result = data; }
-                else { this.error = data.error || 'Er ging iets mis.'; }
+                else { this.error = data.error || 'Something went wrong.'; }
             } catch (e) {
-                this.error = 'Er ging iets mis.';
+                this.error = 'Something went wrong.';
             } finally {
                 this.loading = false;
             }

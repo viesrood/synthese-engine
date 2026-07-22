@@ -11,8 +11,8 @@ use viesrood\synthese\Plugin;
 /**
  * CacheService
  *
- * Cachet gegenereerde antwoorden (Craft-cache/Redis) om API-kosten te beperken.
- * Invalidatie via een versie-marker (geen tag-based invalidatie in Craft).
+ * Caches generated answers (Craft cache/Redis) to limit API costs.
+ * Invalidation via a version marker (no tag-based invalidation in Craft).
  */
 class CacheService extends Component
 {
@@ -42,7 +42,7 @@ class CacheService extends Component
     }
 
     /**
-     * Invalideer alle antwoorden (versie-bump). Gebruikt door de index-/delete-jobs.
+     * Invalidate all answers (version bump). Used by the index/delete jobs.
      */
     public function invalidate(): bool
     {

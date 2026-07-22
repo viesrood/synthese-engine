@@ -1,6 +1,6 @@
 {
   "name": "viesrood/synthese-engine",
-  "description": "AI-gedreven semantische zoekfunctie voor Craft CMS: hybride vector- en full-text-search met LLM-synthese en bronvermelding.",
+  "description": "AI-powered semantic search for Craft CMS: hybrid vector and full-text search with LLM synthesis and source citations.",
   "type": "craft-plugin",
   "license": "MIT",
   "keywords": [

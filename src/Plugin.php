@@ -34,9 +34,9 @@ use yii\base\Event;
 /**
  * Synthese Engine plugin.
  *
- * AI-gedreven semantische zoekfunctie: Craft-entries -> OpenAI-embeddings ->
- * Supabase (pgvector + full-text, hybride RRF) -> Google Gemini-synthese met
- * bronvermelding.
+ * AI-driven semantic search: Craft entries -> OpenAI embeddings ->
+ * Supabase (pgvector + full-text, hybrid RRF) -> Google Gemini synthesis with
+ * source attribution.
  *
  * @property-read ChunkingService $chunking
  * @property-read EmbeddingService $embedding
@@ -86,7 +86,7 @@ class Plugin extends BasePlugin
             $this->registerUrlRules();
         }
 
-        Craft::info('Synthese Engine plugin geinitialiseerd', __METHOD__);
+        Craft::info('Synthese Engine plugin initialized', __METHOD__);
     }
 
     // -----------------------------------------------------------------
@@ -99,7 +99,7 @@ class Plugin extends BasePlugin
     }
 
     /**
-     * Getypeerde settings-accessor.
+     * Typed settings accessor.
      */
     public function getSettings(): Settings
     {
@@ -123,13 +123,13 @@ class Plugin extends BasePlugin
         $item['subnav'] = [
             'dashboard' => ['label' => 'Dashboard', 'url' => 'synthese-engine'],
             'tools' => ['label' => 'Tools', 'url' => 'synthese-engine/tools'],
-            'settings' => ['label' => 'Instellingen', 'url' => 'settings/plugins/synthese-engine'],
+            'settings' => ['label' => 'Settings', 'url' => 'settings/plugins/synthese-engine'],
         ];
         return $item;
     }
 
     // -----------------------------------------------------------------
-    // Registratie
+    // Registration
     // -----------------------------------------------------------------
 
     private function registerControllerNamespace(): void

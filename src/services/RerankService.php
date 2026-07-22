@@ -10,8 +10,8 @@ use viesrood\synthese\Plugin;
 /**
  * RerankService
  *
- * Lokale herweging (geen externe provider) van de hybride-zoekresultaten:
- * title-, section- en versheid-boosts bovenop de RRF-score van Supabase.
+ * Local reweighting (no external provider) of the hybrid search results:
+ * title, section and freshness boosts on top of Supabase's RRF score.
  */
 class RerankService extends Component
 {
@@ -19,9 +19,9 @@ class RerankService extends Component
     private const FRESHNESS_BOOST = 1.1;
 
     /**
-     * @param array[] $chunks Ruwe chunks uit VectorService::hybridSearch()
-     * @param array<string, float>|null $sectionBoosts Overschrijft Settings indien gegeven
-     * @return array[] Herwogen en ingekorte chunks
+     * @param array[] $chunks Raw chunks from VectorService::hybridSearch()
+     * @param array<string, float>|null $sectionBoosts Overrides Settings when given
+     * @return array[] Reweighted and truncated chunks
      */
     public function rerank(array $chunks, ?array $sectionBoosts = null, ?int $topK = null): array
     {
@@ -51,7 +51,7 @@ class RerankService extends Component
                         $score *= self::FRESHNESS_BOOST;
                     }
                 } catch (\Throwable) {
-                    // ongeldige datum negeren
+                    // ignore invalid date
                 }
             }
 

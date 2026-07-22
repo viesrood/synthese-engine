@@ -8,7 +8,7 @@ use craft\queue\BaseJob;
 use viesrood\synthese\Plugin;
 
 /**
- * Verwijdert de chunks van een verwijderde entry uit de vector-store.
+ * Removes the chunks of a deleted entry from the vector store.
  */
 class DeleteEntryChunksJob extends BaseJob
 {
@@ -23,6 +23,6 @@ class DeleteEntryChunksJob extends BaseJob
 
     protected function defaultDescription(): ?string
     {
-        return "Synthese Engine: chunks van entry {$this->entryId} verwijderen";
+        return "Synthese Engine: deleting chunks of entry {$this->entryId}";
     }
 }

@@ -10,10 +10,10 @@ use viesrood\synthese\services\SupabaseSqlBuilder;
 use yii\console\ExitCode;
 
 /**
- * Setup-hulpmiddelen.
+ * Setup utilities.
  *
- * synthese-engine/setup/supabase   Print de klaar-om-te-plakken Supabase-SQL
- *                                   (gevuld met de huidige instellingen).
+ * synthese-engine/setup/supabase   Print the ready-to-paste Supabase SQL
+ *                                   (filled in with the current settings).
  */
 class SetupController extends Controller
 {

@@ -13,8 +13,8 @@ use viesrood\synthese\Plugin;
 /**
  * VectorService
  *
- * Beheert de vector-store in Supabase (PostgreSQL + pgvector) via PostgREST.
- * Hybride retrieval (vector + full-text, RRF) via de `matchRpc`-functie.
+ * Manages the vector store in Supabase (PostgreSQL + pgvector) via PostgREST.
+ * Hybrid retrieval (vector + full-text, RRF) via the `matchRpc` function.
  */
 class VectorService extends Component
 {
@@ -34,7 +34,7 @@ class VectorService extends Component
         if ($this->supabaseUrl === '' || $this->serviceKey === '') {
             return false;
         }
-        // Een publishable/anon-key kan niet schrijven; wijs 'm af.
+        // A publishable/anon key cannot write; reject it.
         return !str_starts_with($this->serviceKey, 'sb_publishable_');
     }
 
@@ -63,8 +63,8 @@ class VectorService extends Component
     }
 
     /**
-     * Upsert chunks. Elke chunk is een platte rij die overeenkomt met de
-     * `content_chunks`-kolommen (entry_id, site_id, section, entry_type, url,
+     * Upsert chunks. Each chunk is a flat row matching the
+     * `content_chunks` columns (entry_id, site_id, section, entry_type, url,
      * title, chunk_index, chunk_type, text, embedding, post_date).
      *
      * @param array[] $chunks
@@ -82,7 +82,7 @@ class VectorService extends Component
     }
 
     /**
-     * Hybride zoekopdracht via de RRF-RPC.
+     * Hybrid search via the RRF RPC.
      *
      * @param float[] $queryEmbedding
      * @return array[]
@@ -141,7 +141,7 @@ class VectorService extends Component
     }
 
     /**
-     * Verwijder alle chunks.
+     * Delete all chunks.
      */
     public function truncate(): void
     {
@@ -183,7 +183,7 @@ class VectorService extends Component
     public function testConnection(): array
     {
         if (!$this->isConfigured()) {
-            return ['success' => false, 'error' => 'SUPABASE_URL/SUPABASE_SERVICE_KEY niet (juist) geconfigureerd'];
+            return ['success' => false, 'error' => 'SUPABASE_URL/SUPABASE_SERVICE_KEY not configured (correctly)'];
         }
 
         try {

@@ -13,17 +13,17 @@ use viesrood\synthese\Plugin;
 /**
  * ChunkingService
  *
- * Zet een Craft-entry om naar tekst-chunks met een chunk-type, op basis van de
- * `fieldConfig` uit de instellingen. Consumers kunnen extractie aanpassen via
- * het EVENT_EXTRACT_CONTENT-event.
+ * Converts a Craft entry into text chunks with a chunk type, based on the
+ * `fieldConfig` from the settings. Consumers can customise extraction via the
+ * EVENT_EXTRACT_CONTENT event.
  *
- * Elke chunk: ['text' => string, 'chunk_type' => string, 'chunk_index' => int].
- * De volledige Supabase-rij (entry_id, section, url, ...) wordt in de index-job
- * samengesteld.
+ * Each chunk: ['text' => string, 'chunk_type' => string, 'chunk_index' => int].
+ * The full Supabase row (entry_id, section, url, ...) is assembled in the index
+ * job.
  */
 class ChunkingService extends Component
 {
-    /** @event ExtractContentEvent Kans om per blok/veld extra tekst toe te voegen of te vervangen. */
+    /** @event ExtractContentEvent Opportunity to add or replace text per block/field. */
     public const EVENT_EXTRACT_CONTENT = 'extractContent';
 
     private const CHARS_PER_TOKEN = 4;
@@ -43,7 +43,7 @@ class ChunkingService extends Component
         $chunks = [];
         $index = 0;
 
-        // Titel-chunk (optioneel voorafgegaan door sectie-context voor betere matching)
+        // Title chunk (optionally prefixed with section context for better matching)
         $title = (string) ($entry->title ?? '');
         if ($title !== '') {
             $context = $settings->sectionContext[$section] ?? '';
@@ -54,7 +54,7 @@ class ChunkingService extends Component
             ];
         }
 
-        // Scalar-velden (+ pseudo-velden)
+        // Scalar fields (+ pseudo-fields)
         foreach (($config['fields'] ?? []) as $fieldHandle) {
             if ($fieldHandle === 'title') {
                 continue;
@@ -74,7 +74,7 @@ class ChunkingService extends Component
             }
         }
 
-        // Matrix-velden
+        // Matrix fields
         foreach (($config['matrixFields'] ?? []) as $matrixHandle => $blockTypes) {
             $matrix = $entry->getFieldValue($matrixHandle);
             if (!$matrix) {
@@ -99,12 +99,12 @@ class ChunkingService extends Component
             }
         }
 
-        // Extension point: laat consumers extra chunks toevoegen.
+        // Extension point: let consumers add extra chunks.
         if ($this->hasEventHandlers(self::EVENT_EXTRACT_CONTENT)) {
             $event = new ExtractContentEvent(['entry' => $entry, 'section' => $section, 'chunks' => $chunks]);
             $this->trigger(self::EVENT_EXTRACT_CONTENT, $event);
             $chunks = $event->chunks;
-            // Herindexeer de chunk_index-waarden voor de zekerheid.
+            // Re-index the chunk_index values to be safe.
             foreach ($chunks as $i => &$c) {
                 $c['chunk_index'] = $i;
             }
@@ -147,15 +147,15 @@ class ChunkingService extends Component
                         $q = $this->extractText($item->getFieldValue('question') ?? '');
                         $a = $this->extractText($item->getFieldValue('answer') ?? '');
                         if ($q !== '') {
-                            $parts[] = Craft::t('synthese-engine', 'Vraag') . ': ' . $q;
+                            $parts[] = Craft::t('synthese-engine', 'Question') . ': ' . $q;
                         }
                         if ($a !== '') {
-                            $parts[] = Craft::t('synthese-engine', 'Antwoord') . ': ' . $a;
+                            $parts[] = Craft::t('synthese-engine', 'Answer') . ': ' . $a;
                         }
                     }
                 }
             } catch (\Throwable) {
-                // veld bestaat mogelijk niet
+                // field may not exist
             }
 
             return implode("\n\n", $parts);
@@ -175,7 +175,7 @@ class ChunkingService extends Component
                     $parts[] = $text;
                 }
             } catch (\Throwable) {
-                // veld bestaat niet op dit bloktype
+                // field does not exist on this block type
             }
         }
 

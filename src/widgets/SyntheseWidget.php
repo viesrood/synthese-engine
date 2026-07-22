@@ -11,7 +11,7 @@ use craft\helpers\UrlHelper;
 use viesrood\synthese\Plugin;
 
 /**
- * Dashboard-widget met een 7-daagse rollup van de zoekstatistieken.
+ * Dashboard widget with a 7-day rollup of the search statistics.
  */
 class SyntheseWidget extends Widget
 {
@@ -42,10 +42,10 @@ class SyntheseWidget extends Widget
         $url = UrlHelper::cpUrl('synthese-engine');
 
         $rows = [
-            [Craft::t('synthese-engine', 'Zoekopdrachten (7 dagen)'), (string) $rollup['total']],
-            [Craft::t('synthese-engine', 'Beantwoordbaar'), $rollup['answerableRate'] . '%'],
-            [Craft::t('synthese-engine', 'Cache-hit'), $rollup['cacheHitRate'] . '%'],
-            [Craft::t('synthese-engine', 'Gem. duur'), $rollup['avgDurationMs'] . ' ms'],
+            [Craft::t('synthese-engine', 'Searches (7 days)'), (string) $rollup['total']],
+            [Craft::t('synthese-engine', 'Answerable'), $rollup['answerableRate'] . '%'],
+            [Craft::t('synthese-engine', 'Cache hit'), $rollup['cacheHitRate'] . '%'],
+            [Craft::t('synthese-engine', 'Avg. duration'), $rollup['avgDurationMs'] . ' ms'],
             [Craft::t('synthese-engine', 'Chunks in index'), (string) ($vector['chunks'] ?? 0)],
         ];
 
@@ -54,7 +54,7 @@ class SyntheseWidget extends Widget
             $html .= '<tr><th>' . Html::encode($label) . '</th><td class="rightalign">' . Html::encode($value) . '</td></tr>';
         }
         $html .= '</tbody></table>';
-        $html .= '<p style="margin-top:10px;"><a class="btn" href="' . $url . '">' . Craft::t('synthese-engine', 'Dashboard openen') . '</a></p>';
+        $html .= '<p style="margin-top:10px;"><a class="btn" href="' . $url . '">' . Craft::t('synthese-engine', 'Open dashboard') . '</a></p>';
 
         return $html;
     }

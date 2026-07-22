@@ -2,19 +2,20 @@
 
 ## 1.0.0 - Unreleased
 
-### Toegevoegd
-- Eerste release: herbruikbare Craft 5-plugin, samengevoegd uit de twee
-  `syntheseEngine`-modules (Viesrood + Van Meijel).
-- Hybride retrieval: vector (pgvector/HNSW) + full-text (GIN) via Reciprocal Rank
-  Fusion, lokale rerank (title-/section-/versheid-boosts) en answerability-gate.
-- OpenAI-embeddings, Google-Gemini-synthese met geciteerde bronnen.
-- Operationele laag: bot-detectie, per-IP + globale rate-limiting, dagbudget,
-  antwoord-cache.
-- CP: dashboard, tools (verbindingstest, herindex, truncate, SQL-generatie) en
-  instellingenscherm; dashboard-widget.
-- Settings-model als enige config-bron (+ `config/synthese-engine.php`-override);
-  geen site-specifieke handles of merktekst meer in de plugincode.
-- Extension points `EVENT_EXTRACT_CONTENT` en `EVENT_FORMAT_SOURCE` plus
-  `sourceFormatters`-config.
-- Geparametriseerde Supabase-setup-SQL (`synthese-engine/setup/supabase`).
+### Added
+- Initial release: a reusable Craft 5 plugin, merged from the two
+  `syntheseEngine` modules (Viesrood + Van Meijel).
+- Hybrid retrieval: vector (pgvector/HNSW) + full-text (GIN) via Reciprocal Rank
+  Fusion, local rerank (title/section/freshness boosts) and an answerability gate.
+- OpenAI embeddings, Google Gemini synthesis with cited sources.
+- Operational layer: bot detection, per-IP + global rate limiting, daily budget,
+  answer cache.
+- CP: dashboard, tools (connection test, reindex, truncate, SQL generation) and a
+  settings screen; dashboard widget.
+- Settings model as the single source of config (+ `config/synthese-engine.php`
+  override); no site-specific handles or branding left in the plugin code.
+- Extension points `EVENT_EXTRACT_CONTENT` and `EVENT_FORMAT_SOURCE` plus the
+  `sourceFormatters` config.
+- Parameterized Supabase setup SQL (`synthese-engine/setup/supabase`).
+- English source strings with a bundled Dutch (`nl`) translation.
 - Console: `index/*`, `stats/*`, `setup/supabase`.

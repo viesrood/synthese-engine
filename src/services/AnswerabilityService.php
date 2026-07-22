@@ -10,13 +10,13 @@ use viesrood\synthese\Plugin;
 /**
  * AnswerabilityService
  *
- * Pre-synthese-poort: bepaalt of de opgehaalde chunks relevant genoeg zijn om
- * de LLM aan te roepen. Voorkomt gehallucineerde antwoorden bij zwakke retrieval.
+ * Pre-synthesis gate: determines whether the retrieved chunks are relevant
+ * enough to call the LLM. Prevents hallucinated answers on weak retrieval.
  */
 class AnswerabilityService extends Component
 {
     /**
-     * @param array[] $chunks Herwogen chunks (met 'similarity' of 'final_score')
+     * @param array[] $chunks Reweighted chunks (with 'similarity' or 'final_score')
      */
     public function isAnswerable(array $chunks): bool
     {

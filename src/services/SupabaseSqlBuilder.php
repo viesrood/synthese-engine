@@ -9,10 +9,10 @@ use viesrood\synthese\models\Settings;
 /**
  * SupabaseSqlBuilder
  *
- * Genereert de klaar-om-te-plakken Supabase-setup-SQL op basis van de
- * instellingen (tabel-/RPC-naam, embedding-dimensies, FTS-taal, timezone en de
- * per-sectie "huidig jaar"-filter). Zo staan er geen site-specifieke literals
- * ('dutch', 'Europe/Amsterdam', sectienamen) in de plugincode.
+ * Generates the ready-to-paste Supabase setup SQL from the settings (table/RPC
+ * name, embedding dimensions, FTS language, timezone and the per-section
+ * "current year" filter). This keeps site-specific literals ('dutch',
+ * 'Europe/Amsterdam', section names) out of the plugin code.
  */
 class SupabaseSqlBuilder
 {
@@ -27,15 +27,15 @@ class SupabaseSqlBuilder
 
         return <<<SQL
 -- =============================================================================
--- Synthese Engine - Supabase setup-SQL (gegenereerd)
--- Draai dit in de Supabase SQL-editor.
+-- Synthese Engine - Supabase setup SQL (generated)
+-- Run this in the Supabase SQL editor.
 -- =============================================================================
 
--- 1. pgvector buiten het API-geexposeerde public-schema
+-- 1. pgvector outside the API-exposed public schema
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
 
--- 2. Chunk-tabel
+-- 2. Chunk table
 CREATE TABLE IF NOT EXISTS public.{$table} (
     id          BIGSERIAL PRIMARY KEY,
     entry_id    INTEGER   NOT NULL,
@@ -53,13 +53,13 @@ CREATE TABLE IF NOT EXISTS public.{$table} (
     UNIQUE (entry_id, site_id, chunk_index)
 );
 
--- 3. HNSW-index voor snelle nearest-neighbour-search
+-- 3. HNSW index for fast nearest-neighbour search
 CREATE INDEX IF NOT EXISTS {$table}_embedding_hnsw_idx
     ON public.{$table}
     USING hnsw (embedding extensions.vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
 
--- 4. Full-text-search-kolom + GIN-index
+-- 4. Full-text-search column + GIN index
 ALTER TABLE public.{$table}
     ADD COLUMN IF NOT EXISTS fts TSVECTOR
     GENERATED ALWAYS AS (to_tsvector({$lang}, coalesce(title, '') || ' ' || coalesce(text, ''))) STORED;
@@ -68,7 +68,7 @@ CREATE INDEX IF NOT EXISTS {$table}_fts_idx
     ON public.{$table}
     USING GIN (fts);
 
--- 5. Hybride-search-RPC (Reciprocal Rank Fusion)
+-- 5. Hybrid search RPC (Reciprocal Rank Fusion)
 CREATE OR REPLACE FUNCTION public.{$rpc}(
     query_embedding extensions.VECTOR({$dims}),
     query_text      TEXT,
@@ -129,7 +129,7 @@ AS \$\$
     LIMIT match_count;
 \$\$;
 
--- 6. Alleen de backend-service-role mag lezen/schrijven (RLS)
+-- 6. Only the backend service role may read/write (RLS)
 ALTER TABLE public.{$table} ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON TABLE public.{$table} FROM PUBLIC, anon, authenticated;
@@ -151,8 +151,8 @@ SQL;
     }
 
     /**
-     * Bouwt de per-sectie "huidig jaar"-conditie, of een lege string als er geen
-     * currentYearOnlySections zijn.
+     * Builds the per-section "current year" condition, or an empty string when
+     * there are no currentYearOnlySections.
      */
     private function yearFilter(Settings $settings): string
     {
@@ -173,14 +173,14 @@ SQL;
             . "          )";
     }
 
-    /** Veilige SQL-identifier (alleen [a-z0-9_]). */
+    /** Safe SQL identifier (only [a-z0-9_]). */
     private function ident(string $name): string
     {
         $clean = preg_replace('/[^a-zA-Z0-9_]/', '', $name);
         return $clean !== '' ? $clean : 'content_chunks';
     }
 
-    /** Veilige SQL-string-literal. */
+    /** Safe SQL string literal. */
     private function literal(string $value): string
     {
         return "'" . str_replace("'", "''", $value) . "'";

@@ -1,18 +1,18 @@
 {% import "_includes/forms" as forms %}
 
-<h2>Merk & prompt</h2>
+<h2>Branding & prompt</h2>
 
 {{ forms.textField({
-    label: 'Sitenaam',
-    instructions: 'Wordt genoemd in de standaard system-prompt.',
+    label: 'Site name',
+    instructions: 'Referenced in the default system prompt.',
     id: 'siteName',
     name: 'siteName',
     value: settings.siteName,
 }) }}
 
 {{ forms.textareaField({
-    label: 'System-prompt (optioneel)',
-    instructions: 'Laat leeg voor de ingebouwde standaardprompt (met de sitenaam ingevuld).',
+    label: 'System prompt (optional)',
+    instructions: 'Leave empty for the built-in default prompt (with the site name filled in).',
     id: 'systemPrompt',
     name: 'systemPrompt',
     rows: 8,
@@ -20,8 +20,8 @@
 }) }}
 
 {{ forms.textareaField({
-    label: 'Antwoord bij onvoldoende resultaten',
-    instructions: 'Getoond als de answerability-gate faalt (geen LLM-call).',
+    label: 'Message when there are not enough results',
+    instructions: 'Shown when the answerability gate fails (no LLM call). Leave empty for the built-in translatable default.',
     id: 'notAnswerableMessage',
     name: 'notAnswerableMessage',
     rows: 2,
@@ -29,47 +29,47 @@
 }) }}
 
 <hr>
-<h2>Modellen & vector-store</h2>
+<h2>Models & vector store</h2>
 
-{{ forms.textField({ label: 'Embedding-model', id: 'embeddingModel', name: 'embeddingModel', value: settings.embeddingModel }) }}
-{{ forms.textField({ label: 'Embedding-dimensies', id: 'embeddingDimensions', name: 'embeddingDimensions', type: 'number', value: settings.embeddingDimensions, instructions: 'Moet overeenkomen met het model en de Supabase-kolom. Wijzigen vereist opnieuw provisionen + herindexeren.' }) }}
-{{ forms.textField({ label: 'Synthese-model (Gemini)', id: 'synthesisModel', name: 'synthesisModel', value: settings.synthesisModel }) }}
-{{ forms.textField({ label: 'Supabase-tabel', id: 'supabaseTable', name: 'supabaseTable', value: settings.supabaseTable }) }}
-{{ forms.textField({ label: 'Supabase-RPC', id: 'matchRpc', name: 'matchRpc', value: settings.matchRpc }) }}
-{{ forms.textField({ label: 'Full-text-search-taal', id: 'ftsLanguage', name: 'ftsLanguage', value: settings.ftsLanguage, instructions: "PostgreSQL-taal, bv. 'dutch' of 'english'." }) }}
-{{ forms.textField({ label: 'Timezone (jaar-filter)', id: 'timezone', name: 'timezone', value: settings.timezone }) }}
-
-<hr>
-<h2>Retrieval-tuning</h2>
-
-{{ forms.textField({ label: 'Chunk-grootte (tokens)', id: 'chunkSize', name: 'chunkSize', type: 'number', value: settings.chunkSize }) }}
-{{ forms.textField({ label: 'Chunk-overlap (tokens)', id: 'chunkOverlap', name: 'chunkOverlap', type: 'number', value: settings.chunkOverlap }) }}
-{{ forms.textField({ label: 'Max. kandidaat-chunks', id: 'maxChunks', name: 'maxChunks', type: 'number', value: settings.maxChunks }) }}
-{{ forms.textField({ label: 'Top-K na rerank', id: 'topK', name: 'topK', type: 'number', value: settings.topK }) }}
-{{ forms.textField({ label: 'Similarity-drempel', id: 'similarityThreshold', name: 'similarityThreshold', value: settings.similarityThreshold }) }}
-{{ forms.textField({ label: 'Versheid-boost venster (dagen)', id: 'freshnessDays', name: 'freshnessDays', type: 'number', value: settings.freshnessDays }) }}
-{{ forms.textField({ label: 'Gate: min. chunks', id: 'answerabilityMinChunks', name: 'answerabilityMinChunks', type: 'number', value: settings.answerabilityMinChunks }) }}
-{{ forms.textField({ label: 'Gate: min. similarity', id: 'answerabilityMinSimilarity', name: 'answerabilityMinSimilarity', value: settings.answerabilityMinSimilarity }) }}
+{{ forms.textField({ label: 'Embedding model', id: 'embeddingModel', name: 'embeddingModel', value: settings.embeddingModel }) }}
+{{ forms.textField({ label: 'Embedding dimensions', id: 'embeddingDimensions', name: 'embeddingDimensions', type: 'number', value: settings.embeddingDimensions, instructions: 'Must match the model and the Supabase column. Changing this requires re-provisioning + reindexing.' }) }}
+{{ forms.textField({ label: 'Synthesis model (Gemini)', id: 'synthesisModel', name: 'synthesisModel', value: settings.synthesisModel }) }}
+{{ forms.textField({ label: 'Supabase table', id: 'supabaseTable', name: 'supabaseTable', value: settings.supabaseTable }) }}
+{{ forms.textField({ label: 'Supabase RPC', id: 'matchRpc', name: 'matchRpc', value: settings.matchRpc }) }}
+{{ forms.textField({ label: 'Full-text-search language', id: 'ftsLanguage', name: 'ftsLanguage', value: settings.ftsLanguage, instructions: "PostgreSQL language, e.g. 'english' or 'dutch'." }) }}
+{{ forms.textField({ label: 'Timezone (year filter)', id: 'timezone', name: 'timezone', value: settings.timezone }) }}
 
 <hr>
-<h2>Indexering & routing</h2>
+<h2>Retrieval tuning</h2>
 
-{{ forms.lightswitchField({ label: 'Automatisch indexeren bij entry-save/-delete', id: 'autoIndex', name: 'autoIndex', on: settings.autoIndex }) }}
-{{ forms.textField({ label: 'Route-prefix', id: 'routePrefix', name: 'routePrefix', value: settings.routePrefix, instructions: 'URL-prefix voor de publieke zoek-endpoints, bv. api/synthese.' }) }}
-
-<hr>
-<h2>Caching, rate-limiting & budget</h2>
-
-{{ forms.textField({ label: 'Cache-duur (seconden)', id: 'cacheDuration', name: 'cacheDuration', type: 'number', value: settings.cacheDuration }) }}
-{{ forms.textField({ label: 'Max. requests/minuut/IP', id: 'maxRequestsPerMinute', name: 'maxRequestsPerMinute', type: 'number', value: settings.maxRequestsPerMinute }) }}
-{{ forms.textField({ label: 'Max. requests/uur/IP', id: 'maxRequestsPerHour', name: 'maxRequestsPerHour', type: 'number', value: settings.maxRequestsPerHour }) }}
-{{ forms.textField({ label: 'Max. requests/dag/IP', id: 'maxRequestsPerDay', name: 'maxRequestsPerDay', type: 'number', value: settings.maxRequestsPerDay }) }}
-{{ forms.textField({ label: 'Globaal max. requests/dag', id: 'maxGlobalRequestsPerDay', name: 'maxGlobalRequestsPerDay', type: 'number', value: settings.maxGlobalRequestsPerDay }) }}
-{{ forms.textField({ label: 'Dagbudget (USD)', id: 'dailyBudgetUsd', name: 'dailyBudgetUsd', value: settings.dailyBudgetUsd, instructions: 'Kan via de env-var SYNTHESE_DAILY_BUDGET_USD in het config-bestand.' }) }}
+{{ forms.textField({ label: 'Chunk size (tokens)', id: 'chunkSize', name: 'chunkSize', type: 'number', value: settings.chunkSize }) }}
+{{ forms.textField({ label: 'Chunk overlap (tokens)', id: 'chunkOverlap', name: 'chunkOverlap', type: 'number', value: settings.chunkOverlap }) }}
+{{ forms.textField({ label: 'Max candidate chunks', id: 'maxChunks', name: 'maxChunks', type: 'number', value: settings.maxChunks }) }}
+{{ forms.textField({ label: 'Top-K after rerank', id: 'topK', name: 'topK', type: 'number', value: settings.topK }) }}
+{{ forms.textField({ label: 'Similarity threshold', id: 'similarityThreshold', name: 'similarityThreshold', value: settings.similarityThreshold }) }}
+{{ forms.textField({ label: 'Freshness boost window (days)', id: 'freshnessDays', name: 'freshnessDays', type: 'number', value: settings.freshnessDays }) }}
+{{ forms.textField({ label: 'Gate: min chunks', id: 'answerabilityMinChunks', name: 'answerabilityMinChunks', type: 'number', value: settings.answerabilityMinChunks }) }}
+{{ forms.textField({ label: 'Gate: min similarity', id: 'answerabilityMinSimilarity', name: 'answerabilityMinSimilarity', value: settings.answerabilityMinSimilarity }) }}
 
 <hr>
-<h2>Structurele content-configuratie</h2>
-<p class="light">Onderstaande instellingen bepalen <em>welke</em> content geindexeerd wordt en zijn ontwikkelaars-configuratie. Beheer ze via <code>config/synthese-engine.php</code> (ondersteunt multi-environment). Ze staan hier alleen-lezen ter controle.</p>
+<h2>Indexing & routing</h2>
+
+{{ forms.lightswitchField({ label: 'Automatically index on entry save/delete', id: 'autoIndex', name: 'autoIndex', on: settings.autoIndex }) }}
+{{ forms.textField({ label: 'Route prefix', id: 'routePrefix', name: 'routePrefix', value: settings.routePrefix, instructions: 'URL prefix for the public search endpoints, e.g. api/synthese.' }) }}
+
+<hr>
+<h2>Caching, rate limiting & budget</h2>
+
+{{ forms.textField({ label: 'Cache duration (seconds)', id: 'cacheDuration', name: 'cacheDuration', type: 'number', value: settings.cacheDuration }) }}
+{{ forms.textField({ label: 'Max requests/minute/IP', id: 'maxRequestsPerMinute', name: 'maxRequestsPerMinute', type: 'number', value: settings.maxRequestsPerMinute }) }}
+{{ forms.textField({ label: 'Max requests/hour/IP', id: 'maxRequestsPerHour', name: 'maxRequestsPerHour', type: 'number', value: settings.maxRequestsPerHour }) }}
+{{ forms.textField({ label: 'Max requests/day/IP', id: 'maxRequestsPerDay', name: 'maxRequestsPerDay', type: 'number', value: settings.maxRequestsPerDay }) }}
+{{ forms.textField({ label: 'Global max requests/day', id: 'maxGlobalRequestsPerDay', name: 'maxGlobalRequestsPerDay', type: 'number', value: settings.maxGlobalRequestsPerDay }) }}
+{{ forms.textField({ label: 'Daily budget (USD)', id: 'dailyBudgetUsd', name: 'dailyBudgetUsd', value: settings.dailyBudgetUsd, instructions: 'Can be set via the SYNTHESE_DAILY_BUDGET_USD env var in the config file.' }) }}
+
+<hr>
+<h2>Structural content configuration</h2>
+<p class="light">The settings below determine <em>which</em> content gets indexed and are developer configuration. Manage them via <code>config/synthese-engine.php</code> (supports multi-environment). They are shown here read-only for reference.</p>
 
 {% set readonlyBlocks = {
     'includeSections': settings.includeSections,

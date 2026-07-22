@@ -13,13 +13,13 @@ use viesrood\synthese\models\Settings;
 /**
  * IndexEligibilityService
  *
- * Bepaalt welke entries geindexeerd en doorzocht mogen worden: de sectie-gate
- * (include/exclude/fieldConfig) plus de optionele "alleen huidig jaar"-regel.
+ * Determines which entries may be indexed and searched: the section gate
+ * (include/exclude/fieldConfig) plus the optional "current year only" rule.
  */
 class IndexEligibilityService extends Component
 {
     /**
-     * De volledige gate die het auto-index-event gebruikt.
+     * The full gate used by the auto-index event.
      */
     public function shouldIndexEntry(Entry $entry, Settings $settings): bool
     {
@@ -37,7 +37,7 @@ class IndexEligibilityService extends Component
     }
 
     /**
-     * Is deze sectie uberhaupt onderdeel van de index-scope?
+     * Is this section part of the index scope at all?
      */
     public function isIndexableSection(string $section, Settings $settings): bool
     {
@@ -49,7 +49,7 @@ class IndexEligibilityService extends Component
             return in_array($section, $settings->includeSections, true);
         }
 
-        // Geen expliciete include-lijst: val terug op de fieldConfig-sleutels.
+        // No explicit include list: fall back on the fieldConfig keys.
         if (!empty($settings->fieldConfig)) {
             return array_key_exists($section, $settings->fieldConfig);
         }
@@ -58,7 +58,7 @@ class IndexEligibilityService extends Component
     }
 
     /**
-     * Voegt het "huidig jaar"-datumfilter toe aan een bulk-index-query.
+     * Adds the "current year" date filter to a bulk index query.
      */
     public function applySectionCriteria(EntryQuery $query, string $section, Settings $settings): EntryQuery
     {
@@ -72,7 +72,7 @@ class IndexEligibilityService extends Component
     }
 
     /**
-     * Enkele-entry-check voor de "huidig jaar"-regel.
+     * Single-entry check for the "current year" rule.
      */
     public function isEligible(Entry $entry, Settings $settings): bool
     {

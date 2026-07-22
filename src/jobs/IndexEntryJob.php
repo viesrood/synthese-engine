@@ -10,7 +10,7 @@ use craft\queue\BaseJob;
 use viesrood\synthese\Plugin;
 
 /**
- * (Her)indexeert een entry: chunk -> embed -> upsert naar de vector-store.
+ * (Re)indexes an entry: chunk -> embed -> upsert to the vector store.
  */
 class IndexEntryJob extends BaseJob
 {
@@ -29,7 +29,7 @@ class IndexEntryJob extends BaseJob
 
         $section = $entry->section->handle ?? '';
 
-        // Bestaande chunks altijd eerst verwijderen (ook bij depubliceren).
+        // Always delete existing chunks first (also when unpublishing).
         $plugin->vector->deleteByEntryId($this->entryId, $this->siteId);
 
         if (!$plugin->eligibility->shouldIndexEntry($entry, $settings)) {
@@ -70,11 +70,11 @@ class IndexEntryJob extends BaseJob
         $plugin->vector->upsert($rows);
         $plugin->cache->invalidate();
 
-        Craft::info("Entry {$this->entryId} ({$section}) geindexeerd - " . count($rows) . ' chunks', 'synthese-engine');
+        Craft::info("Entry {$this->entryId} ({$section}) indexed - " . count($rows) . ' chunks', 'synthese-engine');
     }
 
     protected function defaultDescription(): ?string
     {
-        return "Synthese Engine: entry {$this->entryId} indexeren";
+        return "Synthese Engine: indexing entry {$this->entryId}";
     }
 }

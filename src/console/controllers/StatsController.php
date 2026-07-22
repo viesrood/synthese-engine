@@ -10,12 +10,12 @@ use viesrood\synthese\Plugin;
 use yii\console\ExitCode;
 
 /**
- * Statistieken en diagnostiek.
+ * Statistics and diagnostics.
  *
- * synthese-engine/stats            Overzicht (vandaag + totaal + rollup)
- * synthese-engine/stats/test       Test de verbindingen (OpenAI/Supabase/Gemini)
- * synthese-engine/stats/recent     Recente zoekopdrachten
- * synthese-engine/stats/costs      Kosten van vandaag
+ * synthese-engine/stats            Overview (today + total + rollup)
+ * synthese-engine/stats/test       Test the connections (OpenAI/Supabase/Gemini)
+ * synthese-engine/stats/recent     Recent search queries
+ * synthese-engine/stats/costs      Today's costs
  */
 class StatsController extends Controller
 {
@@ -27,13 +27,13 @@ class StatsController extends Controller
         $rollup = $plugin->stats->getRollup(7);
         $vector = $plugin->vector->getStats();
 
-        $this->stdout("== Vandaag ==\n", Console::FG_CYAN);
-        $this->stdout("Synthese-requests: {$today['synthesis']['requests']}\n");
-        $this->stdout("Kosten: \${$today['costs']['total']}\n");
-        $this->stdout("\n== 7 dagen ==\n", Console::FG_CYAN);
-        $this->stdout("Zoekopdrachten: {$rollup['total']} | beantwoordbaar: {$rollup['answerableRate']}% | cache-hit: {$rollup['cacheHitRate']}%\n");
-        $this->stdout("\n== Totaal ==\n", Console::FG_CYAN);
-        $this->stdout('Zoekopdrachten: ' . ($total['totalQueries'] ?? 0) . "\n");
+        $this->stdout("== Today ==\n", Console::FG_CYAN);
+        $this->stdout("Synthesis requests: {$today['synthesis']['requests']}\n");
+        $this->stdout("Costs: \${$today['costs']['total']}\n");
+        $this->stdout("\n== 7 days ==\n", Console::FG_CYAN);
+        $this->stdout("Queries: {$rollup['total']} | answerable: {$rollup['answerableRate']}% | cache hit: {$rollup['cacheHitRate']}%\n");
+        $this->stdout("\n== Total ==\n", Console::FG_CYAN);
+        $this->stdout('Queries: ' . ($total['totalQueries'] ?? 0) . "\n");
         $this->stdout('Chunks in index: ' . ($vector['chunks'] ?? 0) . "\n");
 
         return ExitCode::OK;
@@ -46,7 +46,7 @@ class StatsController extends Controller
         $checks = [
             'OpenAI (embeddings)' => $plugin->embedding->testConnection(),
             'Supabase (vector)' => $plugin->vector->testConnection(),
-            'Gemini (synthese)' => $plugin->synthesis->testConnection(),
+            'Gemini (synthesis)' => $plugin->synthesis->testConnection(),
         ];
 
         $ok = true;
@@ -55,7 +55,7 @@ class StatsController extends Controller
                 $this->stdout("[OK]   {$label}\n", Console::FG_GREEN);
             } else {
                 $ok = false;
-                $this->stdout("[FOUT] {$label}: " . ($result['error'] ?? 'onbekend') . "\n", Console::FG_RED);
+                $this->stdout("[FAIL] {$label}: " . ($result['error'] ?? 'unknown') . "\n", Console::FG_RED);
             }
         }
 
@@ -73,7 +73,7 @@ class StatsController extends Controller
 
     public function actionCosts(): int
     {
-        $this->stdout('Kosten vandaag: $' . round(Plugin::$plugin->stats->getTodayCosts(), 4) . "\n");
+        $this->stdout('Costs today: $' . round(Plugin::$plugin->stats->getTodayCosts(), 4) . "\n");
         return ExitCode::OK;
     }
 }

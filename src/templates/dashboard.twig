@@ -5,52 +5,52 @@
 {% block content %}
     <div class="flex" style="gap:24px;flex-wrap:wrap;">
         <div class="pane" style="flex:1;min-width:220px;">
-            <h2>Vandaag</h2>
+            <h2>Today</h2>
             <table class="data fullwidth">
-                <tr><th>Synthese-requests</th><td class="rightalign">{{ today.synthesis.requests }}</td></tr>
-                <tr><th>Embedding-requests</th><td class="rightalign">{{ today.embedding.requests }}</td></tr>
-                <tr><th>Kosten</th><td class="rightalign">${{ today.costs.total }}</td></tr>
+                <tr><th>Synthesis requests</th><td class="rightalign">{{ today.synthesis.requests }}</td></tr>
+                <tr><th>Embedding requests</th><td class="rightalign">{{ today.embedding.requests }}</td></tr>
+                <tr><th>Cost</th><td class="rightalign">${{ today.costs.total }}</td></tr>
             </table>
         </div>
 
         <div class="pane" style="flex:1;min-width:220px;">
-            <h2>Laatste 7 dagen</h2>
+            <h2>Last 7 days</h2>
             <table class="data fullwidth">
-                <tr><th>Zoekopdrachten</th><td class="rightalign">{{ rollup.total }}</td></tr>
-                <tr><th>Beantwoordbaar</th><td class="rightalign">{{ rollup.answerableRate }}%</td></tr>
-                <tr><th>Cache-hit</th><td class="rightalign">{{ rollup.cacheHitRate }}%</td></tr>
-                <tr><th>Gem. duur</th><td class="rightalign">{{ rollup.avgDurationMs }} ms</td></tr>
+                <tr><th>Searches</th><td class="rightalign">{{ rollup.total }}</td></tr>
+                <tr><th>Answerable</th><td class="rightalign">{{ rollup.answerableRate }}%</td></tr>
+                <tr><th>Cache hit</th><td class="rightalign">{{ rollup.cacheHitRate }}%</td></tr>
+                <tr><th>Avg. duration</th><td class="rightalign">{{ rollup.avgDurationMs }} ms</td></tr>
             </table>
         </div>
 
         <div class="pane" style="flex:1;min-width:220px;">
             <h2>Index</h2>
             <table class="data fullwidth">
-                <tr><th>Chunks in vector-store</th><td class="rightalign">{{ vector.chunks ?? 0 }}</td></tr>
-                <tr><th>Totaal zoekopdrachten</th><td class="rightalign">{{ total.totalQueries ?? 0 }}</td></tr>
+                <tr><th>Chunks in vector store</th><td class="rightalign">{{ vector.chunks ?? 0 }}</td></tr>
+                <tr><th>Total searches</th><td class="rightalign">{{ total.totalQueries ?? 0 }}</td></tr>
             </table>
         </div>
     </div>
 
     <div class="pane" style="margin-top:24px;">
-        <h2>Recente zoekopdrachten</h2>
+        <h2>Recent searches</h2>
         {% if recent|length %}
             <table class="data fullwidth">
-                <thead><tr><th>Wanneer</th><th>Vraag</th><th>Beantw.</th><th>Cache</th><th class="rightalign">Duur</th></tr></thead>
+                <thead><tr><th>When</th><th>Query</th><th>Answerable</th><th>Cache</th><th class="rightalign">Duration</th></tr></thead>
                 <tbody>
                 {% for row in recent %}
                     <tr>
                         <td>{{ row.created_at }}</td>
                         <td>{{ row.query }}</td>
-                        <td>{{ row.is_answerable ? 'ja' : 'nee' }}</td>
-                        <td>{{ row.cache_hit ? 'ja' : 'nee' }}</td>
+                        <td>{{ row.is_answerable ? 'yes' : 'no' }}</td>
+                        <td>{{ row.cache_hit ? 'yes' : 'no' }}</td>
                         <td class="rightalign">{{ row.duration_ms }} ms</td>
                     </tr>
                 {% endfor %}
                 </tbody>
             </table>
         {% else %}
-            <p class="light">Nog geen zoekopdrachten gelogd.</p>
+            <p class="light">No searches logged yet.</p>
         {% endif %}
     </div>
 {% endblock %}

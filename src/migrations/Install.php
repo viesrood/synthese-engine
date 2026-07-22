@@ -7,8 +7,8 @@ namespace viesrood\synthese\migrations;
 use craft\db\Migration;
 
 /**
- * Install-migratie: maakt de lokale logtabel `{{%synthese_logs}}`.
- * (De Supabase-vector-store wordt apart geprovisioned, zie de tools/README.)
+ * Install migration: creates the local log table `{{%synthese_logs}}`.
+ * (The Supabase vector store is provisioned separately, see the tools/README.)
  */
 class Install extends Migration
 {
