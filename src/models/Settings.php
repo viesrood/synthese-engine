@@ -49,8 +49,12 @@ class Settings extends Model
     /** Min number of chunks above the threshold before calling the LLM. */
     public int $answerabilityMinChunks = 2;
 
-    /** Min similarity a chunk must reach to count towards the gate. */
-    public float $answerabilityMinSimilarity = 0.60;
+    /**
+     * Min cosine similarity a chunk must reach to count towards the gate.
+     * Tuned for text-embedding-3-small, where relevant matches typically score
+     * ~0.4-0.55; a higher value (e.g. 0.60) rejects legitimate questions.
+     */
+    public float $answerabilityMinSimilarity = 0.35;
 
     // ---------------------------------------------------------------------
     // Models

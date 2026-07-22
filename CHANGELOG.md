@@ -19,3 +19,8 @@
 - Parameterized Supabase setup SQL (`synthese-engine/setup/supabase`).
 - English source strings with a bundled Dutch (`nl`) translation.
 - Console: `index/*`, `stats/*`, `setup/supabase`.
+
+### Fixed
+- Answerability gate default `answerabilityMinSimilarity` lowered from 0.60 to
+  0.35. For `text-embedding-3-small`, relevant matches typically score ~0.4-0.55,
+  so 0.60 rejected legitimate questions with a "no information found" answer.
