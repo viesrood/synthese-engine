@@ -149,12 +149,18 @@ PROMPT;
 
     private function formatChunksForPrompt(array $chunks): string
     {
+        $sectionContext = Plugin::$plugin->getSettings()->sectionContext;
         $formatted = [];
         foreach ($chunks as $index => $chunk) {
             $num = $index + 1;
             $title = $chunk['entry_title'] ?? $chunk['title'] ?? 'Unknown';
             $content = $chunk['content'] ?? $chunk['text'] ?? '';
-            $formatted[] = "[{$num}] {$title}\n{$content}";
+            // Surface the per-section context to the LLM (not just to the
+            // embedding), so it can tell e.g. a client case study apart from the
+            // site's own services.
+            $context = $sectionContext[$chunk['section'] ?? ''] ?? '';
+            $header = $context !== '' ? "[{$num}] {$title} ({$context})" : "[{$num}] {$title}";
+            $formatted[] = "{$header}\n{$content}";
         }
         return implode("\n\n---\n\n", $formatted);
     }
