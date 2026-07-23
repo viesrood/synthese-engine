@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `recentMonthsSections` setting: restrict a section to a rolling "last N months"
+  window (map of `handle => months`), as an alternative to the fixed-calendar
+  `currentYearOnlySections`. Enforced both at index time (`IndexEligibilityService`)
+  and query time (the generated `match_chunks_hybrid` RPC). Rolling months take
+  precedence over the calendar-year window when a section is in both lists.
+
 ## 1.0.0 - 2026-07-22
 
 ### Added

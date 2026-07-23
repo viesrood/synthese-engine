@@ -69,6 +69,9 @@ indexed) belongs in `config/synthese-engine.php` (supports multi-environment); s
 - `sectionContext` - semantic hint per section, embedded for better matching.
 - `sectionBoosts` - rerank multiplier per section.
 - `currentYearOnlySections` - sections that only count in the current calendar year.
+- `recentMonthsSections` - sections that only count within a rolling window of the
+  last N months (map of `handle => months`, e.g. `['news' => 6]`); slides forward
+  daily and wins over `currentYearOnlySections` when a section is in both.
 - `sourceFormatters` - override the source URL/title per section.
 - `siteName`, `systemPrompt`, `notAnswerableMessage`, `exampleQueries`.
 

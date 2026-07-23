@@ -23,7 +23,7 @@ class SupabaseSqlBuilder
         $dims = (int) $settings->embeddingDimensions;
         $lang = $this->literal($settings->ftsLanguage ?: 'simple');
         $seq = $table . '_id_seq';
-        $yearFilter = $this->yearFilter($settings);
+        $dateFilter = $this->dateFilter($settings);
 
         return <<<SQL
 -- =============================================================================
@@ -100,7 +100,7 @@ AS \$\$
             1 - (c.embedding OPERATOR(extensions.<=>) query_embedding) AS similarity,
             ROW_NUMBER() OVER (ORDER BY c.embedding OPERATOR(extensions.<=>) query_embedding) AS vector_rank
         FROM public.{$table} c
-        WHERE c.embedding IS NOT NULL{$yearFilter}
+        WHERE c.embedding IS NOT NULL{$dateFilter}
         ORDER BY c.embedding OPERATOR(extensions.<=>) query_embedding
         LIMIT match_count * 2
     ),
@@ -109,7 +109,7 @@ AS \$\$
             c.id,
             ROW_NUMBER() OVER (ORDER BY ts_rank_cd(c.fts, websearch_to_tsquery({$lang}, query_text)) DESC) AS fts_rank
         FROM public.{$table} c
-        WHERE c.fts @@ websearch_to_tsquery({$lang}, query_text){$yearFilter}
+        WHERE c.fts @@ websearch_to_tsquery({$lang}, query_text){$dateFilter}
         ORDER BY ts_rank_cd(c.fts, websearch_to_tsquery({$lang}, query_text)) DESC
         LIMIT match_count * 2
     ),
@@ -151,26 +151,60 @@ SQL;
     }
 
     /**
-     * Builds the per-section "current year" condition, or an empty string when
-     * there are no currentYearOnlySections.
+     * Builds the per-section date-window condition: a calendar-year window for
+     * `currentYearOnlySections` and/or a rolling "last N months" window for
+     * `recentMonthsSections`. Returns an empty string when no section is
+     * date-restricted. Rolling months win when a section is in both lists.
      */
-    private function yearFilter(Settings $settings): string
+    private function dateFilter(Settings $settings): string
     {
-        $sections = array_values(array_filter($settings->currentYearOnlySections));
-        if (empty($sections)) {
+        $recent = [];
+        foreach ($settings->recentMonthsSections as $section => $months) {
+            $months = (int) $months;
+            if ($section !== '' && $months > 0) {
+                $recent[$section] = $months;
+            }
+        }
+
+        $calendarYear = array_values(array_filter(
+            $settings->currentYearOnlySections,
+            fn($s) => $s !== '' && !array_key_exists($s, $recent)
+        ));
+
+        if (empty($calendarYear) && empty($recent)) {
             return '';
         }
 
         $tz = $this->literal($settings->timezone ?: 'UTC');
-        $array = implode(', ', array_map(fn($s) => $this->literal($s), $sections));
 
-        return "\n          AND (\n"
-            . "              c.section <> ALL (ARRAY[{$array}])\n"
-            . "              OR (\n"
-            . "                  c.post_date >= DATE_TRUNC('year', CURRENT_TIMESTAMP AT TIME ZONE {$tz}) AT TIME ZONE {$tz}\n"
-            . "                  AND c.post_date < (DATE_TRUNC('year', CURRENT_TIMESTAMP AT TIME ZONE {$tz}) + INTERVAL '1 year') AT TIME ZONE {$tz}\n"
-            . "              )\n"
-            . "          )";
+        $windowed = array_merge($calendarYear, array_keys($recent));
+        $windowedList = implode(', ', array_map(fn($s) => $this->literal($s), $windowed));
+
+        // A chunk passes when its section is not date-restricted...
+        $clauses = ["c.section <> ALL (ARRAY[{$windowedList}])"];
+
+        // ...or it is a calendar-year section within the current year...
+        if (!empty($calendarYear)) {
+            $calList = implode(', ', array_map(fn($s) => $this->literal($s), $calendarYear));
+            $clauses[] = "(\n"
+                . "                  c.section = ANY (ARRAY[{$calList}])\n"
+                . "                  AND c.post_date >= DATE_TRUNC('year', CURRENT_TIMESTAMP AT TIME ZONE {$tz}) AT TIME ZONE {$tz}\n"
+                . "                  AND c.post_date < (DATE_TRUNC('year', CURRENT_TIMESTAMP AT TIME ZONE {$tz}) + INTERVAL '1 year') AT TIME ZONE {$tz}\n"
+                . "              )";
+        }
+
+        // ...or it is a rolling-months section within its window.
+        foreach ($recent as $section => $months) {
+            $sec = $this->literal($section);
+            $clauses[] = "(\n"
+                . "                  c.section = {$sec}\n"
+                . "                  AND c.post_date >= CURRENT_TIMESTAMP - INTERVAL '{$months} months'\n"
+                . "              )";
+        }
+
+        $joined = implode("\n              OR ", $clauses);
+
+        return "\n          AND (\n              {$joined}\n          )";
     }
 
     /** Safe SQL identifier (only [a-z0-9_]). */

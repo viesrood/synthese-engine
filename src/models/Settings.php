@@ -124,6 +124,16 @@ class Settings extends Model
     public array $currentYearOnlySections = [];
 
     /**
+     * Sections whose entries only count within a rolling window of the last N
+     * months (based on postDate and `timezone`). Map of section handle => months,
+     * e.g. ['news' => 6, 'blog' => 12]. Unlike `currentYearOnlySections` the
+     * window has no fixed calendar boundary: it slides forward every day.
+     * If a section appears in both lists, this rolling window takes precedence.
+     * @var array<string, int>
+     */
+    public array $recentMonthsSections = [];
+
+    /**
      * Optional per-section source formatters for the source list.
      * Format: 'handle' => ['urlOverride' => '/path', 'titleFrom' => 'fieldName'].
      * For more complex cases: use the EVENT_FORMAT_SOURCE event.
@@ -255,7 +265,7 @@ class Settings extends Model
             [['similarityThreshold', 'answerabilityMinSimilarity'], 'number', 'min' => 0, 'max' => 1],
             [['dailyBudgetUsd'], 'number', 'min' => 0],
             [['siteName', 'embeddingModel', 'synthesisModel', 'supabaseTable', 'matchRpc', 'ftsLanguage', 'timezone', 'routePrefix'], 'string'],
-            [['includeSections', 'excludeSections', 'fieldConfig', 'sectionBoosts', 'sectionContext', 'currentYearOnlySections', 'sourceFormatters', 'noInfoPhrases', 'exampleQueries', 'defaultFields', 'pricing'], 'safe'],
+            [['includeSections', 'excludeSections', 'fieldConfig', 'sectionBoosts', 'sectionContext', 'currentYearOnlySections', 'recentMonthsSections', 'sourceFormatters', 'noInfoPhrases', 'exampleQueries', 'defaultFields', 'pricing'], 'safe'],
             [['autoIndex'], 'boolean'],
         ];
     }

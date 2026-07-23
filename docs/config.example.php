@@ -29,6 +29,12 @@ return [
     // Current calendar year only (e.g. news/topical)
     'currentYearOnlySections' => ['news'],
 
+    // Rolling "last N months" window per section (map handle => months). Slides
+    // forward daily; wins over currentYearOnlySections if a section is in both.
+    'recentMonthsSections' => [
+        // 'topical' => 12,
+    ],
+
     // Per-section field extraction
     'fieldConfig' => [
         'pages' => [
