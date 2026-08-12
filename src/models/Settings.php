@@ -100,6 +100,27 @@ class Settings extends Model
      */
     public array $fieldConfig = [];
 
+    /**
+     * Explicit field handles to extract per matrix block type, overriding the
+     * built-in guesses in ChunkingService.
+     *
+     * A listed handle may point at plain text, at a nested Matrix field, or at
+     * an Entries relation. In the latter two cases the referenced entries are
+     * followed and their text is attributed to the entry being indexed, which
+     * is what you want for reusable content fragments: the text is on the page,
+     * so it belongs in that page's chunks.
+     *
+     * Format: 'blockTypeHandle' => ['fieldHandle', ...].
+     * @var array<string, string[]>
+     */
+    public array $blockFields = [];
+
+    /**
+     * How deep to follow nested matrices and entry relations while chunking.
+     * Guards against a fragment that (indirectly) includes itself.
+     */
+    public int $maxBlockDepth = 3;
+
     /** @var string[] Default fields when a section is not in fieldConfig. */
     public array $defaultFields = ['title'];
 
@@ -261,11 +282,11 @@ class Settings extends Model
     public function rules(): array
     {
         return [
-            [['chunkSize', 'chunkOverlap', 'maxChunks', 'topK', 'embeddingDimensions'], 'integer', 'min' => 1],
+            [['chunkSize', 'chunkOverlap', 'maxChunks', 'topK', 'embeddingDimensions', 'maxBlockDepth'], 'integer', 'min' => 1],
             [['similarityThreshold', 'answerabilityMinSimilarity'], 'number', 'min' => 0, 'max' => 1],
             [['dailyBudgetUsd'], 'number', 'min' => 0],
             [['siteName', 'embeddingModel', 'synthesisModel', 'supabaseTable', 'matchRpc', 'ftsLanguage', 'timezone', 'routePrefix'], 'string'],
-            [['includeSections', 'excludeSections', 'fieldConfig', 'sectionBoosts', 'sectionContext', 'currentYearOnlySections', 'recentMonthsSections', 'sourceFormatters', 'noInfoPhrases', 'exampleQueries', 'defaultFields', 'pricing'], 'safe'],
+            [['includeSections', 'excludeSections', 'fieldConfig', 'blockFields', 'sectionBoosts', 'sectionContext', 'currentYearOnlySections', 'recentMonthsSections', 'sourceFormatters', 'noInfoPhrases', 'exampleQueries', 'defaultFields', 'pricing'], 'safe'],
             [['autoIndex'], 'boolean'],
         ];
     }

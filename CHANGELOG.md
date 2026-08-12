@@ -3,6 +3,21 @@
 ## Unreleased
 
 ### Added
+- `blockFields` setting: explicit field handles per matrix block type, overriding
+  the built-in `richText`/`plainText`/`blockContent` guesses in `ChunkingService`.
+  Sites whose blocks carry their text in headings, intros or overlines had that
+  content silently left out of the index.
+- A handle listed in `blockFields` may point at a nested Matrix field or at an
+  Entries relation. Both are element queries in Craft 5, so one code path follows
+  sub-blocks and reusable content fragments alike, attributing their text to the
+  entry being indexed. That is what you want for a fragment: it has no URL of its
+  own, but its text is rendered on the page that includes it, so it belongs in
+  that page's chunks. `maxBlockDepth` (default 3) plus a per-path visited set
+  bound the recursion and break relation cycles.
+  A related entry contributes nothing when its body yields no text, so a fragment
+  built only from blocks you did not configure no longer produces a chunk that is
+  just its heading. Its title is prefixed for context unless the first block
+  already opens with it.
 - `recentMonthsSections` setting: restrict a section to a rolling "last N months"
   window (map of `handle => months`), as an alternative to the fixed-calendar
   `currentYearOnlySections`. Enforced both at index time (`IndexEligibilityService`)

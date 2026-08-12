@@ -6,6 +6,8 @@ namespace viesrood\synthese\services;
 
 use Craft;
 use craft\base\Component;
+use craft\elements\db\ElementQueryInterface;
+use craft\elements\ElementCollection;
 use craft\elements\Entry;
 use viesrood\synthese\events\ExtractContentEvent;
 use viesrood\synthese\Plugin;
@@ -87,7 +89,7 @@ class ChunkingService extends Component
                     continue;
                 }
 
-                $text = $this->extractBlockText($block, $type);
+                $text = $this->extractBlockText($block, $type, 0, [$entry->id => true]);
                 if ($text === '') {
                     continue;
                 }
@@ -135,7 +137,10 @@ class ChunkingService extends Component
         return '';
     }
 
-    private function extractBlockText(object $block, string $type): string
+    /**
+     * @param array<int, true> $visited Entry ids already on the current path, to break relation cycles.
+     */
+    private function extractBlockText(object $block, string $type, int $depth = 0, array $visited = []): string
     {
         $parts = [];
 
@@ -161,7 +166,7 @@ class ChunkingService extends Component
             return implode("\n\n", $parts);
         }
 
-        $candidates = match ($type) {
+        $candidates = Plugin::$plugin->getSettings()->blockFields[$type] ?? match ($type) {
             'richText' => ['richText'],
             'plainText' => ['plainText', 'text'],
             'textImageBlock' => ['blockContent', 'richText', 'plainText'],
@@ -170,16 +175,139 @@ class ChunkingService extends Component
 
         foreach ($candidates as $fieldHandle) {
             try {
-                $text = $this->extractText($block->getFieldValue($fieldHandle));
-                if ($text !== '') {
-                    $parts[] = $text;
-                }
+                $value = $block->getFieldValue($fieldHandle);
             } catch (\Throwable) {
                 // field does not exist on this block type
+                continue;
+            }
+
+            // A nested Matrix and an Entries relation are both element queries in
+            // Craft 5, so one branch covers sub-blocks and reusable fragments.
+            $text = $this->isElementList($value)
+                ? $this->extractRelatedText($value, $depth, $visited)
+                : $this->extractText($value);
+
+            if ($text !== '') {
+                $parts[] = $text;
             }
         }
 
         return implode("\n\n", $parts);
+    }
+
+    private function isElementList(mixed $value): bool
+    {
+        return $value instanceof ElementQueryInterface || $value instanceof ElementCollection;
+    }
+
+    /**
+     * Follows a nested Matrix field or an Entries relation and returns the text
+     * of everything behind it, attributed to the entry being indexed.
+     *
+     * @param array<int, true> $visited
+     */
+    private function extractRelatedText(mixed $value, int $depth, array $visited): string
+    {
+        if ($depth >= Plugin::$plugin->getSettings()->maxBlockDepth) {
+            return '';
+        }
+
+        $parts = [];
+
+        foreach ($value->all() as $element) {
+            if (!$element instanceof Entry) {
+                // e.g. an Assets or Categories field; nothing to read.
+                continue;
+            }
+
+            // Nested Matrix entries have no section; a relation to a real entry
+            // (a reusable content fragment) does.
+            if ($element->getSection() === null) {
+                $text = $this->extractBlockText($element, $element->type->handle ?? '', $depth + 1, $visited);
+            } else {
+                if ($element->getStatus() !== Entry::STATUS_LIVE || isset($visited[$element->id])) {
+                    continue;
+                }
+                $visited[$element->id] = true;
+                $text = $this->extractEntryText($element, $depth + 1, $visited);
+            }
+
+            if ($text !== '') {
+                $parts[] = $text;
+            }
+        }
+
+        return implode("\n\n", $parts);
+    }
+
+    /**
+     * Full text of a related entry (title, scalar fields and matrix blocks),
+     * using that entry's own fieldConfig. Used for reusable fragments, which are
+     * rendered inside another page and so belong to that page's chunks.
+     *
+     * @param array<int, true> $visited
+     */
+    private function extractEntryText(Entry $entry, int $depth, array $visited): string
+    {
+        $settings = Plugin::$plugin->getSettings();
+        $section = $entry->getSection()?->handle;
+        $config = ($section !== null ? ($settings->fieldConfig[$section] ?? null) : null)
+            ?? ['fields' => $settings->defaultFields];
+
+        $parts = [];
+
+        foreach (($config['fields'] ?? []) as $fieldHandle) {
+            if ($fieldHandle === 'title') {
+                continue;
+            }
+            try {
+                $text = str_starts_with($fieldHandle, '_')
+                    ? $this->extractPseudoField($entry, $fieldHandle)
+                    : $this->extractText($entry->getFieldValue($fieldHandle) ?? '');
+            } catch (\Throwable) {
+                continue;
+            }
+            if ($text !== '') {
+                $parts[] = $text;
+            }
+        }
+
+        foreach (($config['matrixFields'] ?? []) as $matrixHandle => $blockTypes) {
+            try {
+                $matrix = $entry->getFieldValue($matrixHandle);
+            } catch (\Throwable) {
+                continue;
+            }
+            if (!$matrix) {
+                continue;
+            }
+
+            foreach ($matrix->all() as $block) {
+                $type = $block->type->handle ?? '';
+                if (!in_array($type, $blockTypes, true)) {
+                    continue;
+                }
+                $text = $this->extractBlockText($block, $type, $depth, $visited);
+                if ($text !== '') {
+                    $parts[] = $text;
+                }
+            }
+        }
+
+        // A related entry whose body yields nothing would contribute a chunk
+        // consisting of just its heading, which retrieves badly. Skip it.
+        if ($parts === []) {
+            return '';
+        }
+
+        // The heading is worth keeping for context, but the first block often
+        // opens with that same heading as its own header.
+        $title = trim((string) ($entry->title ?? ''));
+        if ($title !== '' && !str_starts_with(ltrim($parts[0]), $title)) {
+            array_unshift($parts, $title);
+        }
+
+        return implode("\n\n", array_unique($parts));
     }
 
     private function guessChunkType(string $fieldHandle): string
