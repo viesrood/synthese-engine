@@ -58,11 +58,25 @@ class SearchController extends Controller
             // 1. Cache
             $cached = $plugin->cache->get($query);
             if ($cached !== null) {
-                $plugin->stats->logQuery($query, !empty($cached['sources']), true, 0, 0, ($cached['chunksUsed'] ?? 0), (microtime(true) - $startTime) * 1000);
+                $cachedSources = $cached['sources'] ?? [];
+                $plugin->stats->logQuery(
+                    $query,
+                    !empty($cachedSources),
+                    true,
+                    0,
+                    0,
+                    ($cached['chunksUsed'] ?? 0),
+                    (microtime(true) - $startTime) * 1000,
+                    'cached',
+                    count($cachedSources),
+                );
                 return $this->asJson([
                     'success' => true,
                     'answer' => $cached['answer'],
-                    'sources' => $this->sourcesToRelativeUrls($cached['sources'] ?? []),
+                    'sources' => $this->sourcesToRelativeUrls($cachedSources),
+                    // The related questions come from the cached payload too, so
+                    // this path stays free of an embedding call.
+                    'related' => $cached['related'] ?? [],
                     'cached' => true,
                 ]);
             }
@@ -83,11 +97,24 @@ class SearchController extends Controller
 
             // 5. Answerability gate: skip the LLM on weak retrieval.
             if (!$plugin->answerability->isAnswerable($chunks)) {
-                $plugin->stats->logQuery($query, false, false, $metrics['topScore'], $metrics['scoreSpread'], $metrics['chunksUsed'], (microtime(true) - $startTime) * 1000);
+                $plugin->stats->logQuery(
+                    $query,
+                    false,
+                    false,
+                    $metrics['topScore'],
+                    $metrics['scoreSpread'],
+                    $metrics['chunksUsed'],
+                    (microtime(true) - $startTime) * 1000,
+                    'gated',
+                    0,
+                );
                 return $this->asJson([
                     'success' => true,
                     'answer' => $settings->resolveNotAnswerableMessage(),
                     'sources' => [],
+                    // Nothing to answer with, but a nearby approved question may
+                    // well be what the visitor was after.
+                    'related' => $plugin->suggestions->relatedToEmbedding($queryEmbedding, $query),
                     'cached' => false,
                 ]);
             }
@@ -98,19 +125,35 @@ class SearchController extends Controller
                 return $this->jsonResponse(['success' => false, 'error' => $result['error'] ?? Craft::t('synthese-engine', 'Something went wrong generating the answer.')], 500);
             }
 
-            // 7. Cache + global counter + log
+            // 7. Related questions: the query embedding is already in hand, so
+            // this costs a cosine loop over a few hundred vectors and no API call.
+            $related = $plugin->suggestions->relatedToEmbedding($queryEmbedding, $query);
+
+            // 8. Cache + global counter + log
             $plugin->cache->set($query, [
                 'answer' => $result['answer'],
                 'sources' => $result['sources'],
+                'related' => $related,
                 'chunksUsed' => count($chunks),
             ]);
             $this->incrementGlobalDailyCounter();
-            $plugin->stats->logQuery($query, !empty($result['sources']), false, $metrics['topScore'], $metrics['scoreSpread'], $metrics['chunksUsed'], (microtime(true) - $startTime) * 1000);
+            $plugin->stats->logQuery(
+                $query,
+                !empty($result['sources']),
+                false,
+                $metrics['topScore'],
+                $metrics['scoreSpread'],
+                $metrics['chunksUsed'],
+                (microtime(true) - $startTime) * 1000,
+                'answered',
+                count($result['sources'] ?? []),
+            );
 
             return $this->asJson([
                 'success' => true,
                 'answer' => $result['answer'],
                 'sources' => $this->sourcesToRelativeUrls($result['sources'] ?? []),
+                'related' => $related,
                 'cached' => false,
             ]);
         } catch (\Throwable $e) {

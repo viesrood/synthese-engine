@@ -25,6 +25,7 @@ use viesrood\synthese\services\EmbeddingService;
 use viesrood\synthese\services\IndexEligibilityService;
 use viesrood\synthese\services\RerankService;
 use viesrood\synthese\services\StatsService;
+use viesrood\synthese\services\SuggestionsService;
 use viesrood\synthese\services\SynthesisService;
 use viesrood\synthese\services\VectorService;
 use viesrood\synthese\variables\SyntheseVariable;
@@ -47,13 +48,14 @@ use yii\base\Event;
  * @property-read SynthesisService $synthesis
  * @property-read CacheService $cache
  * @property-read StatsService $stats
+ * @property-read SuggestionsService $suggestions
  * @property-read Settings $settings
  */
 class Plugin extends BasePlugin
 {
     public static Plugin $plugin;
 
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.1.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -75,6 +77,7 @@ class Plugin extends BasePlugin
             'synthesis' => SynthesisService::class,
             'cache' => CacheService::class,
             'stats' => StatsService::class,
+            'suggestions' => SuggestionsService::class,
         ]);
 
         $this->registerControllerNamespace();
@@ -122,6 +125,7 @@ class Plugin extends BasePlugin
         $item['label'] = 'Synthese Engine';
         $item['subnav'] = [
             'dashboard' => ['label' => 'Dashboard', 'url' => 'synthese-engine'],
+            'suggestions' => ['label' => 'Suggestions', 'url' => 'synthese-engine/suggestions'],
             'tools' => ['label' => 'Tools', 'url' => 'synthese-engine/tools'],
             'settings' => ['label' => 'Settings', 'url' => 'settings/plugins/synthese-engine'],
         ];
@@ -159,6 +163,7 @@ class Plugin extends BasePlugin
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function (RegisterUrlRulesEvent $event) {
                 $event->rules['synthese-engine'] = 'synthese-engine/cp/index';
+                $event->rules['synthese-engine/suggestions'] = 'synthese-engine/cp/suggestions';
                 $event->rules['synthese-engine/tools'] = 'synthese-engine/cp/tools';
             }
         );

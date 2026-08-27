@@ -91,8 +91,43 @@ The plugin exposes:
 - `GET  /api/synthese/health`
 
 The prefix is configurable (`routePrefix`). In Twig: `craft.synthese.searchUrl`,
-`craft.synthese.isConfigured`, `craft.synthese.exampleQueries`. See
-`example-templates/` for a simple search and results view (unstyled).
+`craft.synthese.isConfigured`, `craft.synthese.exampleQueries` and
+`craft.synthese.suggestedQueries()`. See `example-templates/` for a simple search
+and results view (unstyled).
+
+## Learned suggestions
+
+Questions visitors asked are harvested into clusters and offered back to other
+visitors, but only after an admin approves them in CP > Synthese Engine >
+Suggestions. Nothing typed by a visitor reaches the site on its own.
+
+- `craft.synthese.suggestedQueries(limit)` returns the approved ones, pinned
+  first, topped up from `exampleQueries` when there are not enough yet. That
+  top-up is what makes it safe to switch on before there is any traffic.
+- The search response carries a `related` array: approved questions closest to
+  the one just asked. It reuses the embedding the search already computed, so it
+  costs no extra API call.
+- Harvesting runs from cron, never during a request:
+
+```
+15 3 * * *  php craft synthese-engine/suggestions/harvest
+45 3 * * *  php craft synthese-engine/suggestions/prune
+```
+
+A question only enters the queue once `suggestionMinAskers` different visitors
+asked it and it produced an answer with sources. Questions containing an e-mail
+address, phone number, URL, postcode or long digit run never qualify, nor do
+questions matching `suggestionBlocklist`.
+
+`suggestionClusterThreshold` should stay high (0.90). Short questions about one
+subject score highly against each other, so the band holding reworded duplicates
+overlaps the band holding genuinely different questions; see the CHANGELOG for
+the measurements. Clustering therefore only folds near-identical phrasings and
+leaves the judgement calls to the person working the queue.
+
+Because the log table holds free text typed by visitors next to a stable IP
+hash, `logRetentionDays` (default 90) and the `prune` command are not optional
+extras. Approved suggestions survive pruning: they carry the question text only.
 
 ## Extension points
 
@@ -115,6 +150,9 @@ Or config: `sourceFormatters` for simple per-section URL/title overrides.
 | `synthese-engine/stats/test` | Test connections |
 | `synthese-engine/stats/recent [n]` | Recent searches |
 | `synthese-engine/setup/supabase` | Generate the Supabase SQL |
+| `synthese-engine/suggestions/harvest [--verbose]` | Fold new log rows into suggestion clusters |
+| `synthese-engine/suggestions/prune [--days=N]` | Delete log rows past the retention window |
+| `synthese-engine/suggestions/list` | Print the queue and the approved list |
 
 ## License
 

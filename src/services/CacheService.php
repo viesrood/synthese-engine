@@ -6,6 +6,7 @@ namespace viesrood\synthese\services;
 
 use Craft;
 use craft\base\Component;
+use viesrood\synthese\helpers\QueryNormalizer;
 use viesrood\synthese\Plugin;
 
 /**
@@ -62,8 +63,6 @@ class CacheService extends Component
 
     private function normalizeQuery(string $query): string
     {
-        $query = mb_strtolower($query, 'UTF-8');
-        $query = preg_replace('/\s+/', ' ', $query);
-        return rtrim(trim($query), '?!.');
+        return QueryNormalizer::normalize($query);
     }
 }

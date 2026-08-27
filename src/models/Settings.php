@@ -205,6 +205,61 @@ class Settings extends Model
     public array $exampleQueries = [];
 
     // ---------------------------------------------------------------------
+    // Learned suggestions
+    // ---------------------------------------------------------------------
+
+    /** Harvest asked questions and offer approved ones back to visitors. */
+    public bool $suggestionsEnabled = true;
+
+    /**
+     * How many different visitors must have asked something before it shows up
+     * in the approval queue. Keeps one person from pushing their own wording in.
+     */
+    public int $suggestionMinAskers = 2;
+
+    /** Length bounds for a harvested question, in characters. A chip stays short. */
+    public int $suggestionMinLength = 10;
+    public int $suggestionMaxLength = 120;
+
+    /**
+     * Cosine similarity above which a new phrasing joins an existing cluster
+     * instead of starting one.
+     *
+     * Deliberately high. Short questions about the same product score highly
+     * against each other, so the band where a reworded duplicate lives overlaps
+     * the band where two genuinely different questions live: measured on one
+     * site, "what is X" against a reworded "what is X" scored 0.72 while "what
+     * is X" against "what does X cost" scored 0.71. No threshold separates
+     * those. At 0.90 only near-identical phrasings fold together, and anything
+     * looser is left for the person approving the queue to decide on.
+     */
+    public float $suggestionClusterThreshold = 0.90;
+
+    /** Substrings that disqualify a question outright (case-insensitive). */
+    public array $suggestionBlocklist = [];
+
+    /** How many approved suggestions the chips show. */
+    public int $suggestionsPerPage = 6;
+
+    /** How many "others also asked" suggestions accompany an answer; 0 = off. */
+    public int $relatedSuggestionsCount = 3;
+
+    /**
+     * Cosine floor for those. Mid-range scores are unreliable as an identity
+     * test (see suggestionClusterThreshold) but work fine for ranking, which is
+     * all this does: on the same measurements, questions about one product sat
+     * around 0.71 and questions about a different subject around 0.55.
+     */
+    public float $relatedMinSimilarity = 0.60;
+
+    /**
+     * Days to keep rows in `synthese_logs`. They hold free text typed by
+     * visitors next to a stable IP hash, so they should not live forever.
+     * 0 = keep everything.
+     */
+    public int $logRetentionDays = 90;
+
+    // ---------------------------------------------------------------------
     // SQL parameters (for the generated Supabase setup SQL)
     // ---------------------------------------------------------------------
 
@@ -283,11 +338,13 @@ class Settings extends Model
     {
         return [
             [['chunkSize', 'chunkOverlap', 'maxChunks', 'topK', 'embeddingDimensions', 'maxBlockDepth'], 'integer', 'min' => 1],
-            [['similarityThreshold', 'answerabilityMinSimilarity'], 'number', 'min' => 0, 'max' => 1],
+            [['suggestionMinAskers', 'suggestionMinLength', 'suggestionMaxLength', 'suggestionsPerPage'], 'integer', 'min' => 1],
+            [['relatedSuggestionsCount', 'logRetentionDays'], 'integer', 'min' => 0],
+            [['similarityThreshold', 'answerabilityMinSimilarity', 'suggestionClusterThreshold', 'relatedMinSimilarity'], 'number', 'min' => 0, 'max' => 1],
             [['dailyBudgetUsd'], 'number', 'min' => 0],
             [['siteName', 'embeddingModel', 'synthesisModel', 'supabaseTable', 'matchRpc', 'ftsLanguage', 'timezone', 'routePrefix'], 'string'],
-            [['includeSections', 'excludeSections', 'fieldConfig', 'blockFields', 'sectionBoosts', 'sectionContext', 'currentYearOnlySections', 'recentMonthsSections', 'sourceFormatters', 'noInfoPhrases', 'exampleQueries', 'defaultFields', 'pricing'], 'safe'],
-            [['autoIndex'], 'boolean'],
+            [['includeSections', 'excludeSections', 'fieldConfig', 'blockFields', 'sectionBoosts', 'sectionContext', 'currentYearOnlySections', 'recentMonthsSections', 'sourceFormatters', 'noInfoPhrases', 'exampleQueries', 'suggestionBlocklist', 'defaultFields', 'pricing'], 'safe'],
+            [['autoIndex', 'suggestionsEnabled'], 'boolean'],
         ];
     }
 }

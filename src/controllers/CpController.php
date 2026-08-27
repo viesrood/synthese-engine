@@ -9,14 +9,15 @@ use craft\elements\Entry;
 use craft\web\Controller;
 use viesrood\synthese\jobs\IndexEntryJob;
 use viesrood\synthese\Plugin;
+use viesrood\synthese\services\SuggestionsService;
 use viesrood\synthese\services\SupabaseSqlBuilder;
 use yii\web\Response;
 
 /**
  * CpController
  *
- * Control panel screens (dashboard, tools) and admin actions (connection test,
- * reindex, truncate, SQL generation). Admin only.
+ * Control panel screens (dashboard, suggestions, tools) and admin actions
+ * (connection test, reindex, truncate, harvest, SQL generation). Admin only.
  */
 class CpController extends Controller
 {
@@ -40,6 +41,80 @@ class CpController extends Controller
             'vector' => $plugin->vector->getStats(),
             'recent' => $plugin->stats->getRecentQueries(20),
         ]);
+    }
+
+    public function actionSuggestions(): Response
+    {
+        $suggestions = Plugin::$plugin->suggestions;
+        $status = (string) (Craft::$app->getRequest()->getQueryParam('status') ?? SuggestionsService::STATUS_PENDING);
+
+        if (!in_array($status, [
+            SuggestionsService::STATUS_PENDING,
+            SuggestionsService::STATUS_APPROVED,
+            SuggestionsService::STATUS_REJECTED,
+        ], true)) {
+            $status = SuggestionsService::STATUS_PENDING;
+        }
+
+        return $this->renderTemplate('synthese-engine/suggestions', [
+            'plugin' => Plugin::$plugin,
+            'settings' => Plugin::$plugin->getSettings(),
+            'status' => $status,
+            'rows' => $suggestions->listByStatus($status),
+            'pendingCount' => $suggestions->pendingCount(),
+        ]);
+    }
+
+    /**
+     * One endpoint for approve / reject / pin / rewrite / delete / add, so the
+     * screen needs a single form target.
+     */
+    public function actionSuggestionAction(): Response
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $suggestions = Plugin::$plugin->suggestions;
+        $id = (int) $request->getBodyParam('id');
+        $op = (string) $request->getBodyParam('op');
+
+        $ok = match ($op) {
+            'approve' => $suggestions->setStatus($id, SuggestionsService::STATUS_APPROVED),
+            'reject' => $suggestions->setStatus($id, SuggestionsService::STATUS_REJECTED),
+            'requeue' => $suggestions->setStatus($id, SuggestionsService::STATUS_PENDING),
+            'pin' => $suggestions->setPinned($id, true),
+            'unpin' => $suggestions->setPinned($id, false),
+            'rewrite' => $suggestions->rewrite($id, (string) $request->getBodyParam('question')),
+            'delete' => $suggestions->delete($id),
+            'add' => $suggestions->addManual((string) $request->getBodyParam('question')),
+            default => false,
+        };
+
+        if ($ok) {
+            Craft::$app->getSession()->setNotice(Craft::t('synthese-engine', 'Suggestion updated.'));
+        } else {
+            Craft::$app->getSession()->setError(Craft::t('synthese-engine', 'Could not update the suggestion.'));
+        }
+
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
+     * Runs a harvest from the screen, so an admin does not have to wait for the
+     * nightly cron to see the effect of a change.
+     */
+    public function actionHarvest(): Response
+    {
+        $this->requirePostRequest();
+        $stats = Plugin::$plugin->suggestions->harvest();
+
+        Craft::$app->getSession()->setNotice(Craft::t('synthese-engine', '{scanned} log rows read, {new} new and {updated} updated suggestions.', [
+            'scanned' => $stats['scanned'],
+            'new' => $stats['newClusters'],
+            'updated' => $stats['updatedClusters'],
+        ]));
+
+        return $this->redirectToPostedUrl();
     }
 
     public function actionTools(): Response

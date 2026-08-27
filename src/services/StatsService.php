@@ -7,6 +7,7 @@ namespace viesrood\synthese\services;
 use Craft;
 use craft\base\Component;
 use craft\db\Query;
+use viesrood\synthese\helpers\QueryNormalizer;
 use viesrood\synthese\Plugin;
 
 /**
@@ -25,6 +26,15 @@ class StatsService extends Component
     // Query logging (DB)
     // -----------------------------------------------------------------
 
+    /**
+     * @param string $outcome 'answered', 'gated' or 'cached'. Says in one field
+     *                        what is_answerable and cache_hit only say together,
+     *                        and what neither says on the cache path.
+     * @param int $sourcesCount Sources behind the answer. This, not top_score,
+     *                          is the quality signal: top_score carries an RRF
+     *                          fusion score, which orders chunks within a single
+     *                          query and is not comparable across queries.
+     */
     public function logQuery(
         string $query,
         bool $isAnswerable,
@@ -33,15 +43,20 @@ class StatsService extends Component
         float $scoreSpread,
         int $chunksUsed,
         float $durationMs,
+        string $outcome = 'answered',
+        int $sourcesCount = 0,
     ): void {
         try {
             Craft::$app->getDb()->createCommand()->insert(self::TABLE, [
                 'query' => mb_substr($query, 0, 500),
+                'query_normalized' => mb_substr(QueryNormalizer::normalize($query), 0, 500),
                 'is_answerable' => (int) $isAnswerable,
+                'outcome' => $outcome,
                 'cache_hit' => (int) $cacheHit,
                 'top_score' => $topScore,
                 'score_spread' => $scoreSpread,
                 'chunks_used' => $chunksUsed,
+                'sources_count' => $sourcesCount,
                 'duration_ms' => (int) $durationMs,
                 'ip_hash' => $this->hashIp(),
                 'created_at' => date('Y-m-d H:i:s'),

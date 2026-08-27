@@ -45,6 +45,48 @@ class SyntheseVariable
         return Plugin::$plugin->getSettings()->exampleQueries;
     }
 
+    /**
+     * Questions to offer the visitor: the approved ones people actually asked,
+     * topped up from `exampleQueries` when there are not enough yet.
+     *
+     * The top-up is what makes this safe to switch on straight away. A fresh
+     * install, or a site that has not gathered enough traffic, shows exactly
+     * what it showed before instead of an empty row.
+     *
+     * @return string[]
+     */
+    public function suggestedQueries(?int $limit = null): array
+    {
+        $settings = Plugin::$plugin->getSettings();
+        $limit = $limit ?? $settings->suggestionsPerPage;
+
+        if ($limit < 1) {
+            return [];
+        }
+
+        $questions = array_column(Plugin::$plugin->suggestions->approved($limit), 'question');
+
+        if (count($questions) >= $limit) {
+            return $questions;
+        }
+
+        $seen = [];
+        foreach ($questions as $question) {
+            $seen[mb_strtolower($question, 'UTF-8')] = true;
+        }
+
+        foreach ($settings->exampleQueries as $example) {
+            if (count($questions) >= $limit) {
+                break;
+            }
+            if (!isset($seen[mb_strtolower((string) $example, 'UTF-8')])) {
+                $questions[] = (string) $example;
+            }
+        }
+
+        return $questions;
+    }
+
     public function getCsrfTokenName(): string
     {
         return Craft::$app->getConfig()->getGeneral()->csrfTokenName;

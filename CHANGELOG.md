@@ -1,5 +1,56 @@
 # Changelog
 
+## 1.2.0 - 2026-08-27
+
+### Added
+- Learned suggestions. Questions visitors actually asked are harvested into
+  clusters and, once an admin approves them, offered back to other visitors: in
+  the suggestion chips (`craft.synthese.suggestedQueries()`) and as an "others
+  also asked" list in the search response (`related`). Nothing a visitor types
+  reaches the site without a person approving it first.
+- `SuggestionsService`, two tables (`synthese_suggestions` and
+  `synthese_suggestion_variants`), a Control Panel screen with a queue and an
+  approved and rejected list, and the console commands
+  `synthese-engine/suggestions/harvest`, `.../prune` and `.../list`.
+- Clustering is two-stage: identical after normalisation first, which is free,
+  then cosine over stored embeddings, which costs one embedding per genuinely
+  new phrasing. Both stages share `QueryNormalizer` with the answer cache, so
+  "same question" means the same thing everywhere.
+- The embeddings live in MySQL as packed float32 blobs rather than in the vector
+  store. There are at most a few hundred, a cosine loop in PHP is plenty, and a
+  Supabase project on the free tier pauses after inactivity, which would leave a
+  nightly job silently doing nothing.
+- Related questions ride along on the embedding the search already computed, so
+  they cost no extra API call. They are cached with the answer, which means a
+  newly approved suggestion shows up there once the answer cache expires.
+- New settings: `suggestionsEnabled`, `suggestionMinAskers`,
+  `suggestionMinLength`, `suggestionMaxLength`, `suggestionClusterThreshold`,
+  `suggestionBlocklist`, `suggestionsPerPage`, `relatedSuggestionsCount`,
+  `relatedMinSimilarity` and `logRetentionDays`.
+- `synthese_logs` gained `query_normalized`, `outcome`, `sources_count` and
+  `harvested_at`. `outcome` ('answered', 'gated' or 'cached') replaces having to
+  read `is_answerable` and `cache_hit` together, which meant two different things
+  on two code paths and neither on the third. `sources_count` is the quality
+  signal a suggestion is filtered on.
+- `logRetentionDays` plus `suggestions/prune`: the log table holds free text
+  typed by visitors next to a stable IP hash, and it had no retention at all.
+
+### Notes on the cluster threshold
+`suggestionClusterThreshold` defaults to 0.90 and should stay high. Measured
+against a live index, a reworded duplicate ("what is X" against "X, what is that
+exactly") scored 0.7241 while two genuinely different questions ("what is X"
+against "what does X cost") scored 0.7106. No threshold separates those, because
+short questions about one product score highly against each other regardless.
+At 0.90 only near-identical phrasings fold together and the rest is left to the
+person working the queue, which is the safe way round. The same scores are fine
+for *ranking*, which is what `relatedMinSimilarity` (0.60) uses them for.
+
+### Fixed
+- `top_score` was never usable as a cross-query quality measure and is no longer
+  treated as one. It carries the RRF fusion score from `RerankService`, roughly
+  0.02 to 0.05, while the answerability gate compares raw cosine similarity
+  against `answerabilityMinSimilarity`. Two different scales.
+
 ## 1.1.1 - 2026-08-27
 
 ### Fixed

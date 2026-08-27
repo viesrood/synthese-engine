@@ -1,0 +1,165 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = "Suggestions" %}
+{% set selectedSubnavItem = "suggestions" %}
+
+{% set actionUrl = 'synthese-engine/cp/suggestion-action' %}
+
+{% block content %}
+
+    {% if not settings.suggestionsEnabled %}
+        <div class="pane" style="margin-bottom:24px;">
+            <p class="warning">
+                Suggestions are switched off (<code>suggestionsEnabled</code>). Questions are still
+                harvested and can be approved here, but visitors keep seeing the fixed
+                <code>exampleQueries</code>.
+            </p>
+        </div>
+    {% endif %}
+
+    <div class="pane" style="margin-bottom:24px;">
+        <p>
+            Questions visitors asked, grouped by meaning. Nothing here reaches the site until you
+            approve it. A question only enters the queue once
+            <strong>{{ settings.suggestionMinAskers }}</strong> different visitors asked it and it
+            produced an answer with sources.
+        </p>
+
+        <form method="post" accept-charset="UTF-8" style="margin-top:16px;">
+            {{ csrfInput() }}
+            {{ actionInput(actionUrl) }}
+            {{ redirectInput('synthese-engine/suggestions?status=approved') }}
+            {{ hiddenInput('op', 'add') }}
+            <div class="flex">
+                <div class="flex-grow">
+                    {{ forms.text({
+                        name: 'question',
+                        placeholder: 'Add a question yourself, for instance to fill the chips before there is traffic',
+                        maxlength: 500,
+                    }) }}
+                </div>
+                <div><button type="submit" class="btn submit">Add and approve</button></div>
+            </div>
+        </form>
+    </div>
+
+    <div class="flex" style="margin-bottom:16px;align-items:center;gap:8px;">
+        {% for tab, label in { pending: 'Queue', approved: 'Approved', rejected: 'Rejected' } %}
+            <a class="btn{{ status == tab ? ' active' : '' }}"
+               href="{{ url('synthese-engine/suggestions', { status: tab }) }}">
+                {{ label }}{% if tab == 'pending' and pendingCount %} ({{ pendingCount }}){% endif %}
+            </a>
+        {% endfor %}
+
+        <div class="flex-grow"></div>
+
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('synthese-engine/cp/harvest') }}
+            {{ redirectInput('synthese-engine/suggestions?status=' ~ status) }}
+            <button type="submit" class="btn">Harvest now</button>
+        </form>
+    </div>
+
+    {% if rows|length == 0 %}
+        <div class="pane">
+            <p>
+                {% if status == 'pending' %}
+                    Nothing waiting. Either no question has been asked by
+                    {{ settings.suggestionMinAskers }} different visitors yet, or everything has
+                    been dealt with.
+                {% elseif status == 'approved' %}
+                    Nothing approved yet, so the chips fall back to the fixed
+                    <code>exampleQueries</code> from the config.
+                {% else %}
+                    Nothing rejected.
+                {% endif %}
+            </p>
+        </div>
+    {% else %}
+        <table class="data fullwidth collapsible">
+            <thead>
+                <tr>
+                    <th>Question</th>
+                    <th class="thin rightalign">Asked</th>
+                    <th class="thin rightalign">Visitors</th>
+                    <th class="thin">Last asked</th>
+                    <th class="thin"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td>
+                            <form method="post" accept-charset="UTF-8" class="flex">
+                                {{ csrfInput() }}
+                                {{ actionInput(actionUrl) }}
+                                {{ redirectInput('synthese-engine/suggestions?status=' ~ status) }}
+                                {{ hiddenInput('id', row.id) }}
+                                {{ hiddenInput('op', 'rewrite') }}
+                                <div class="flex-grow">
+                                    {{ forms.text({ name: 'question', value: row.question, maxlength: 500 }) }}
+                                </div>
+                                <div><button type="submit" class="btn small">Save text</button></div>
+                            </form>
+
+                            <div class="light smalltext" style="margin-top:4px;">
+                                {% if row.origin == 'manual' %}Added by hand{% else %}Harvested{% endif %}
+                                {%- if row.edited_by_admin %}, rewritten{% endif %}
+                                {%- if row.pinned %}, pinned{% endif %}
+                                {%- if row.variants|length > 1 %}
+                                    &middot; also asked as:
+                                    {% for variant in row.variants|slice(1, 4) %}
+                                        &ldquo;{{ variant.query_normalized }}&rdquo;{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                    {%- if row.variants|length > 5 %} and {{ row.variants|length - 5 }} more{% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="thin rightalign">{{ row.ask_count }}</td>
+                        <td class="thin rightalign">{{ row.asker_count }}</td>
+                        <td class="thin">{{ row.last_asked_at ? row.last_asked_at|date('d-m-Y') : '&mdash;'|raw }}</td>
+                        <td class="thin nowrap">
+                            {% set buttons = status == 'approved'
+                                ? [
+                                    { op: row.pinned ? 'unpin' : 'pin', label: row.pinned ? 'Unpin' : 'Pin' },
+                                    { op: 'reject', label: 'Reject' },
+                                ]
+                                : (status == 'rejected'
+                                    ? [{ op: 'requeue', label: 'Back to queue' }]
+                                    : [
+                                        { op: 'approve', label: 'Approve', class: 'submit' },
+                                        { op: 'reject', label: 'Reject' },
+                                    ]) %}
+
+                            <div class="flex" style="gap:4px;">
+                                {% for button in buttons %}
+                                    <form method="post" accept-charset="UTF-8">
+                                        {{ csrfInput() }}
+                                        {{ actionInput(actionUrl) }}
+                                        {{ redirectInput('synthese-engine/suggestions?status=' ~ status) }}
+                                        {{ hiddenInput('id', row.id) }}
+                                        {{ hiddenInput('op', button.op) }}
+                                        <button type="submit" class="btn small {{ button.class ?? '' }}">{{ button.label }}</button>
+                                    </form>
+                                {% endfor %}
+
+                                <form method="post" accept-charset="UTF-8">
+                                    {{ csrfInput() }}
+                                    {{ actionInput(actionUrl) }}
+                                    {{ redirectInput('synthese-engine/suggestions?status=' ~ status) }}
+                                    {{ hiddenInput('id', row.id) }}
+                                    {{ hiddenInput('op', 'delete') }}
+                                    <button type="submit" class="btn small delete"
+                                            data-icon="remove" title="Delete"></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+{% endblock %}
