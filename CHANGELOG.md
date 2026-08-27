@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.1.1 - 2026-08-27
+
+### Fixed
+- Inline citations now point at a source that actually exists. The prompt
+  numbered the retrieved chunks while the rendered list numbers unique entries,
+  so with `topK = 8` spread over four pages the model happily wrote `[7]` under
+  a list of four. `buildSources()` (formerly `extractUniqueSources()`) now hands
+  both the list and a chunk-to-source map to `formatChunksForPrompt()`: chunks
+  from the same entry share one number, and no number can fall outside the list.
+  Chunks that share a source repeat their header in the prompt rather than being
+  merged, so the rerank order is left intact.
+- The header of a chunk in the prompt uses the title its source ended up with,
+  so what the model cites and what the visitor clicks carry the same name even
+  when a `sourceFormatters` entry or an `EVENT_FORMAT_SOURCE` handler renamed it.
+- Added a guard that removes citations the visitor cannot follow, in both the
+  single (`[7]`) and the grouped (`[3, 4, 5]`) form. This covers the two cases
+  the numbering fix cannot: a `noInfoPhrase` match empties the source list after
+  the answer was written, and a model can always make a number up.
+
+Note that sources are now built before the Gemini call rather than after, so
+`EVENT_FORMAT_SOURCE` fires on every query, including the ones that end up
+showing no sources at all.
+
 ## 1.1.0 - 2026-08-12
 
 ### Added

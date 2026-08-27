@@ -52,9 +52,15 @@ class SynthesisService extends Component
             ];
         }
 
+        // Build the source list up front: the prompt must cite the same numbers
+        // the visitor sees. Several chunks can share one source, so numbering
+        // the chunks separately would produce citations that point past the end
+        // of the list.
+        [$sources, $chunkNumbers] = $this->buildSources($chunks);
+
         $fullPrompt = $this->buildFullPrompt(
             $this->buildSystemPrompt($settings->systemPrompt, $settings->siteName),
-            $this->formatChunksForPrompt($chunks),
+            $this->formatChunksForPrompt($chunks, $sources, $chunkNumbers),
             $query
         );
 
@@ -93,7 +99,14 @@ class SynthesisService extends Component
                 Plugin::$plugin->stats->logSynthesisUsage($tokensInput, $tokensOutput, $responseTime);
 
                 $noInfo = $this->answerIndicatesNoRelevantInfo($answer, $settings->noInfoPhrases);
-                $sources = $noInfo ? [] : $this->extractUniqueSources($chunks);
+                if ($noInfo) {
+                    $sources = [];
+                }
+
+                // Safety net: drop any citation the visitor cannot follow, both
+                // when the sources were just dropped and when the model made a
+                // number up.
+                $answer = $this->stripOrphanCitations($answer, $sources);
 
                 return [
                     'success' => true,
@@ -147,13 +160,22 @@ INSTRUCTIONS:
 PROMPT;
     }
 
-    private function formatChunksForPrompt(array $chunks): string
+    /**
+     * @param array[] $chunks
+     * @param array[] $sources Sources as built by buildSources()
+     * @param int[] $numbers Chunk key => source number, as built by buildSources()
+     */
+    private function formatChunksForPrompt(array $chunks, array $sources, array $numbers): string
     {
         $sectionContext = Plugin::$plugin->getSettings()->sectionContext;
+        // Sources are numbered from 1; index them so a chunk can borrow the
+        // title its source ended up with (a formatter or an event handler may
+        // have changed it), keeping prompt and rendered list in step.
+        $titles = array_column($sources, 'title', 'number');
         $formatted = [];
         foreach ($chunks as $index => $chunk) {
-            $num = $index + 1;
-            $title = $chunk['entry_title'] ?? $chunk['title'] ?? 'Unknown';
+            $num = $numbers[$index] ?? ($index + 1);
+            $title = $titles[$num] ?? $chunk['entry_title'] ?? $chunk['title'] ?? 'Unknown';
             $content = $chunk['content'] ?? $chunk['text'] ?? '';
             // Surface the per-section context to the LLM (not just to the
             // embedding), so it can tell e.g. a client case study apart from the
@@ -198,20 +220,29 @@ PROMPT;
     }
 
     /**
+     * Groups the chunks into a numbered list of unique sources.
+     *
+     * Returns both the list and a map of chunk key => source number, so the
+     * prompt can cite exactly the numbers the visitor gets to see. Two chunks
+     * from the same entry share one number; a chunk without an entry id keeps
+     * getting a source of its own.
+     *
      * @param array[] $chunks
-     * @return array[]
+     * @return array{0: array[], 1: int[]}
      */
-    private function extractUniqueSources(array $chunks): array
+    private function buildSources(array $chunks): array
     {
         $settings = Plugin::$plugin->getSettings();
         $formatters = $settings->sourceFormatters;
 
         $sources = [];
+        $numbers = [];
         $seen = [];
 
-        foreach ($chunks as $chunk) {
+        foreach ($chunks as $index => $chunk) {
             $entryId = $chunk['entry_id'] ?? null;
             if ($entryId && isset($seen[$entryId])) {
+                $numbers[$index] = $seen[$entryId];
                 continue;
             }
 
@@ -230,8 +261,10 @@ PROMPT;
                 }
             }
 
+            $number = count($sources) + 1;
+
             $source = [
-                'number' => count($sources) + 1,
+                'number' => $number,
                 'title' => $title,
                 'url' => $url,
                 'section' => $section,
@@ -245,12 +278,59 @@ PROMPT;
             }
 
             $sources[] = $source;
+            $numbers[$index] = $number;
             if ($entryId) {
-                $seen[$entryId] = true;
+                $seen[$entryId] = $number;
             }
         }
 
-        return $sources;
+        return [$sources, $numbers];
+    }
+
+    /**
+     * Removes [n] citations that point at a source which is not in the list.
+     *
+     * Handles the grouped form the models like to produce ("[3, 4, 5]") as well
+     * as the single one, dropping only the numbers that have no source and
+     * leaving the bracket out entirely once nothing is left of it.
+     *
+     * With an empty list every citation goes: that is the case where a
+     * noInfoPhrase matched and the sources were dropped after the fact.
+     *
+     * @param array[] $sources
+     */
+    private function stripOrphanCitations(string $answer, array $sources): string
+    {
+        $count = count($sources);
+
+        $stripped = preg_replace_callback(
+            '/\[\s*\d+(?:\s*,\s*\d+)*\s*\]/',
+            static function (array $m) use ($count): string {
+                preg_match_all('/\d+/', $m[0], $found);
+                $kept = array_filter(
+                    array_map('intval', $found[0]),
+                    static fn(int $number): bool => $number >= 1 && $number <= $count
+                );
+                if ($kept === []) {
+                    return '';
+                }
+                // Leave a fully valid citation exactly as the model wrote it.
+                return count($kept) === count($found[0]) ? $m[0] : '[' . implode(', ', $kept) . ']';
+            },
+            $answer
+        );
+
+        if ($stripped === null || $stripped === $answer) {
+            return $answer;
+        }
+
+        // Tidy up what the removal leaves behind: a space in front of the
+        // punctuation that followed the citation, and doubled spaces.
+        $stripped = preg_replace('/[ \t]+([.,;:!?)])/u', '$1', $stripped) ?? $stripped;
+        $stripped = preg_replace('/[ \t]{2,}/u', ' ', $stripped) ?? $stripped;
+        $stripped = preg_replace('/[ \t]+$/mu', '', $stripped) ?? $stripped;
+
+        return $stripped;
     }
 
     private function toRelativeUrl(?string $url): ?string
