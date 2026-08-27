@@ -6,6 +6,7 @@ namespace viesrood\synthese\variables;
 
 use Craft;
 use craft\helpers\App;
+use viesrood\synthese\models\Settings;
 use viesrood\synthese\Plugin;
 
 /**
@@ -43,6 +44,18 @@ class SyntheseVariable
     public function exampleQueries(): array
     {
         return Plugin::$plugin->getSettings()->exampleQueries;
+    }
+
+    /**
+     * Whether questions typed by visitors are being collected as suggestion
+     * candidates.
+     *
+     * Use it to decide whether the search page needs to say so. Saying it while
+     * it is not happening is as wrong as staying quiet while it is.
+     */
+    public function learnsFromVisitors(): bool
+    {
+        return Plugin::$plugin->suggestions->mode() === Settings::MODE_MODERATED;
     }
 
     /**

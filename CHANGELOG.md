@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.3.0 - 2026-08-27
+
+### Added
+- The choice of whether questions typed by visitors may be collected at all now
+  belongs to whoever runs the site, on Synthese Engine &rsaquo; Suggestions.
+  Three options: collect and show after approval (the default), only questions an
+  admin adds themselves, or no suggestions at all. Switching away from collecting
+  also hides questions harvested earlier, even ones approved at the time, and a
+  button deletes them outright. Questions added by hand are kept.
+- `suggestions/forget` does the same from the console.
+- New table `{{%synthese_state}}`. The mode, `suggestionMinAskers` and
+  `logRetentionDays` live there rather than in the plugin settings, because
+  plugin settings are project config: a file in the repository that a deploy
+  checks out and re-applies. An admin switching collection off in the control
+  panel would have it switched back on by the next deploy, silently. The plugin
+  settings still supply the defaults, and the settings screen says where the real
+  choice is made.
+- `craft.synthese.learnsFromVisitors()`, so a template can tell visitors their
+  questions are being kept only when that is actually happening.
+
+### Changed
+- `suggestionsEnabled` (boolean, added in 1.2.0 earlier today) is replaced by
+  `suggestionMode`. A boolean could not express "keep the suggestions, stop
+  collecting", which is the middle ground most sites want.
+
 ## 1.2.0 - 2026-08-27
 
 ### Added
@@ -23,7 +48,7 @@
 - Related questions ride along on the embedding the search already computed, so
   they cost no extra API call. They are cached with the answer, which means a
   newly approved suggestion shows up there once the answer cache expires.
-- New settings: `suggestionsEnabled`, `suggestionMinAskers`,
+- New settings: `suggestionMinAskers`,
   `suggestionMinLength`, `suggestionMaxLength`, `suggestionClusterThreshold`,
   `suggestionBlocklist`, `suggestionsPerPage`, `relatedSuggestionsCount`,
   `relatedMinSimilarity` and `logRetentionDays`.

@@ -16,17 +16,20 @@ class Install extends Migration
     public const TABLE = '{{%synthese_logs}}';
     public const SUGGESTIONS = '{{%synthese_suggestions}}';
     public const VARIANTS = '{{%synthese_suggestion_variants}}';
+    public const STATE = '{{%synthese_state}}';
 
     public function safeUp(): bool
     {
         $this->createLogTable();
         $this->createSuggestionTables();
+        $this->createStateTable();
 
         return true;
     }
 
     public function safeDown(): bool
     {
+        $this->dropTableIfExists(self::STATE);
         $this->dropTableIfExists(self::VARIANTS);
         $this->dropTableIfExists(self::SUGGESTIONS);
         $this->dropTableIfExists(self::TABLE);
@@ -62,6 +65,25 @@ class Install extends Migration
         $this->createIndex(null, self::TABLE, ['query_normalized'], false);
         $this->createIndex(null, self::TABLE, ['outcome'], false);
         $this->createIndex(null, self::TABLE, ['harvested_at'], false);
+    }
+
+    /**
+     * Choices that belong to whoever runs the site, kept out of project config
+     * so a deploy cannot put them back. See m260827_170000_add_state.
+     */
+    private function createStateTable(): void
+    {
+        if ($this->db->tableExists(self::STATE)) {
+            return;
+        }
+
+        $this->createTable(self::STATE, [
+            'key' => $this->string(64)->notNull(),
+            'value' => $this->text(),
+            'dateUpdated' => $this->dateTime()->notNull(),
+        ]);
+
+        $this->addPrimaryKey(null, self::STATE, ['key']);
     }
 
     private function createSuggestionTables(): void

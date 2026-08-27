@@ -68,6 +68,35 @@
 {{ forms.textField({ label: 'Daily budget (USD)', id: 'dailyBudgetUsd', name: 'dailyBudgetUsd', value: settings.dailyBudgetUsd, instructions: 'Can be set via the SYNTHESE_DAILY_BUDGET_USD env var in the config file.' }) }}
 
 <hr>
+<h2>Suggestions</h2>
+<p class="light">
+    Whether questions typed by visitors may be collected, how many different visitors a
+    question needs before it is offered for approval, and how long search queries are kept
+    are <strong>not set here</strong>. They are privacy decisions, and plugin settings live
+    in project config: a file in the repository that a deploy checks out and re-applies, so
+    anything changed here would be put back on the next deploy without anyone noticing.
+</p>
+<p class="light">
+    Those three are set on
+    <a href="{{ url('synthese-engine/suggestions') }}">Synthese Engine &rsaquo; Suggestions</a>
+    and stored in the database, where a deploy leaves them alone. The values below are the
+    defaults that apply until someone makes a choice there.
+</p>
+
+{{ forms.selectField({
+    label: 'Default: where suggestions come from',
+    id: 'suggestionMode',
+    name: 'suggestionMode',
+    options: settings.suggestionModeOptions(),
+    value: settings.suggestionMode,
+}) }}
+
+{{ forms.textField({ label: 'Default: different visitors before approval', id: 'suggestionMinAskers', name: 'suggestionMinAskers', type: 'number', value: settings.suggestionMinAskers }) }}
+{{ forms.textField({ label: 'Default: days to keep search queries', id: 'logRetentionDays', name: 'logRetentionDays', type: 'number', value: settings.logRetentionDays, instructions: '0 keeps everything, which is rarely what you want.' }) }}
+{{ forms.textField({ label: 'Suggestions shown', id: 'suggestionsPerPage', name: 'suggestionsPerPage', type: 'number', value: settings.suggestionsPerPage }) }}
+{{ forms.textField({ label: '"Others also asked" shown', id: 'relatedSuggestionsCount', name: 'relatedSuggestionsCount', type: 'number', value: settings.relatedSuggestionsCount, instructions: '0 switches the block under an answer off.' }) }}
+
+<hr>
 <h2>Structural content configuration</h2>
 <p class="light">The settings below determine <em>which</em> content gets indexed and are developer configuration. Manage them via <code>config/synthese-engine.php</code> (supports multi-environment). They are shown here read-only for reference.</p>
 

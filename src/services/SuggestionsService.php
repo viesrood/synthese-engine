@@ -41,12 +41,114 @@ class SuggestionsService extends Component
     private const LOGS = '{{%synthese_logs}}';
     private const SUGGESTIONS = '{{%synthese_suggestions}}';
     private const VARIANTS = '{{%synthese_suggestion_variants}}';
+    private const STATE = '{{%synthese_state}}';
+
+    public const KEY_MODE = 'suggestionMode';
+    public const KEY_MIN_ASKERS = 'suggestionMinAskers';
+    public const KEY_RETENTION = 'logRetentionDays';
 
     /** @var array[]|null Approved clusters with their vectors, for related questions. */
     private ?array $vectorCache = null;
 
     /** @var array<int, float[]>|null Every cluster's vector, held for one harvest run. */
     private ?array $clusterCache = null;
+
+    // -----------------------------------------------------------------
+    // Admin choices
+    // -----------------------------------------------------------------
+    //
+    // These three live in `{{%synthese_state}}` rather than in the plugin
+    // settings, because plugin settings are project config: a file in the repo
+    // that a deploy checks out and re-applies. An admin switching collection off
+    // in the control panel would have it switched back on by the next deploy,
+    // silently. The plugin settings still hold the defaults.
+
+    /**
+     * Whether visitors' questions may be collected, and whether suggestions are
+     * shown at all. One of Settings::MODE_*.
+     */
+    public function mode(): string
+    {
+        $stored = $this->state(self::KEY_MODE);
+        $allowed = [Settings::MODE_OFF, Settings::MODE_MANUAL, Settings::MODE_MODERATED];
+
+        if ($stored !== null && in_array($stored, $allowed, true)) {
+            return $stored;
+        }
+
+        return Plugin::$plugin->getSettings()->suggestionMode;
+    }
+
+    public function setMode(string $mode): bool
+    {
+        if (!in_array($mode, [Settings::MODE_OFF, Settings::MODE_MANUAL, Settings::MODE_MODERATED], true)) {
+            return false;
+        }
+
+        $this->vectorCache = null;
+        $this->clusterCache = null;
+
+        return $this->setState(self::KEY_MODE, $mode);
+    }
+
+    public function minAskers(): int
+    {
+        $stored = $this->state(self::KEY_MIN_ASKERS);
+        return $stored !== null && (int) $stored > 0
+            ? (int) $stored
+            : Plugin::$plugin->getSettings()->suggestionMinAskers;
+    }
+
+    public function setMinAskers(int $value): bool
+    {
+        return $value > 0 && $this->setState(self::KEY_MIN_ASKERS, (string) $value);
+    }
+
+    public function retentionDays(): int
+    {
+        $stored = $this->state(self::KEY_RETENTION);
+        return $stored !== null && $stored !== ''
+            ? max(0, (int) $stored)
+            : Plugin::$plugin->getSettings()->logRetentionDays;
+    }
+
+    public function setRetentionDays(int $value): bool
+    {
+        return $value >= 0 && $this->setState(self::KEY_RETENTION, (string) $value);
+    }
+
+    private function state(string $key): ?string
+    {
+        try {
+            $value = (new Query())
+                ->select(['value'])
+                ->from(self::STATE)
+                ->where(['key' => $key])
+                ->scalar();
+
+            return $value === false || $value === null ? null : (string) $value;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function setState(string $key, string $value): bool
+    {
+        try {
+            Craft::$app->getDb()->createCommand()->upsert(self::STATE, [
+                'key' => $key,
+                'value' => $value,
+                'dateUpdated' => date('Y-m-d H:i:s'),
+            ], [
+                'value' => $value,
+                'dateUpdated' => date('Y-m-d H:i:s'),
+            ])->execute();
+            return true;
+        } catch (\Throwable $e) {
+            Craft::warning('SuggestionsService::setState failed: ' . $e->getMessage(), 'synthese-engine');
+            return false;
+        }
+    }
 
     // -----------------------------------------------------------------
     // Harvesting
@@ -61,7 +163,15 @@ class SuggestionsService extends Component
     public function harvest(?callable $progress = null): array
     {
         $settings = Plugin::$plugin->getSettings();
-        $stats = ['scanned' => 0, 'skipped' => 0, 'newClusters' => 0, 'updatedClusters' => 0, 'embedded' => 0];
+        $stats = ['scanned' => 0, 'skipped' => 0, 'newClusters' => 0, 'updatedClusters' => 0, 'embedded' => 0, 'refused' => false];
+
+        // The admin decides whether visitors' questions may be used at all.
+        // Refusing here rather than at display time is the point: outside the
+        // moderated mode nothing a visitor typed is copied out of the log table.
+        if ($this->mode() !== Settings::MODE_MODERATED) {
+            $stats['refused'] = true;
+            return $stats;
+        }
 
         $rows = (new Query())
             ->select(['id', 'query', 'query_normalized', 'outcome', 'sources_count', 'ip_hash', 'created_at'])
@@ -222,16 +332,25 @@ class SuggestionsService extends Component
      */
     public function approved(int $limit = 6): array
     {
-        $settings = Plugin::$plugin->getSettings();
-        if (!$settings->suggestionsEnabled || $limit < 1) {
+        $mode = $this->mode();
+        if ($mode === Settings::MODE_OFF || $limit < 1) {
             return [];
         }
 
         try {
-            return (new Query())
+            $query = (new Query())
                 ->select(['id', 'question'])
                 ->from(self::SUGGESTIONS)
-                ->where(['status' => self::STATUS_APPROVED])
+                ->where(['status' => self::STATUS_APPROVED]);
+
+            // In manual mode a harvested question stays put even if it was
+            // approved earlier: the admin has since said visitors' questions are
+            // not to be used, and that has to hold retroactively.
+            if ($mode === Settings::MODE_MANUAL) {
+                $query->andWhere(['origin' => self::ORIGIN_MANUAL]);
+            }
+
+            return $query
                 ->orderBy(['pinned' => SORT_DESC, 'asker_count' => SORT_DESC, 'last_asked_at' => SORT_DESC, 'id' => SORT_ASC])
                 ->limit($limit)
                 ->all();
@@ -253,7 +372,7 @@ class SuggestionsService extends Component
         $settings = Plugin::$plugin->getSettings();
         $limit = (int) $settings->relatedSuggestionsCount;
 
-        if (!$settings->suggestionsEnabled || $limit < 1 || empty($embedding)) {
+        if ($this->mode() === Settings::MODE_OFF || $limit < 1 || empty($embedding)) {
             return [];
         }
 
@@ -287,12 +406,17 @@ class SuggestionsService extends Component
 
         $rows = [];
         try {
-            foreach ((new Query())
+            $query = (new Query())
                 ->select(['question', 'question_normalized', 'embedding'])
                 ->from(self::SUGGESTIONS)
                 ->where(['status' => self::STATUS_APPROVED])
-                ->andWhere(['not', ['embedding' => null]])
-                ->all() as $row) {
+                ->andWhere(['not', ['embedding' => null]]);
+
+            if ($this->mode() === Settings::MODE_MANUAL) {
+                $query->andWhere(['origin' => self::ORIGIN_MANUAL]);
+            }
+
+            foreach ($query->all() as $row) {
                 $vector = QueryNormalizer::unpackVector((string) $row['embedding']);
                 if ($vector !== []) {
                     $rows[] = [
@@ -316,8 +440,7 @@ class SuggestionsService extends Component
      */
     public function listByStatus(string $status, int $limit = 200): array
     {
-        $settings = Plugin::$plugin->getSettings();
-        $minAskers = (int) $settings->suggestionMinAskers;
+        $minAskers = $this->minAskers();
 
         $query = (new Query())
             ->select(['id', 'question', 'ask_count', 'asker_count', 'first_asked_at', 'last_asked_at', 'status', 'pinned', 'edited_by_admin', 'origin'])
@@ -353,7 +476,7 @@ class SuggestionsService extends Component
             return (int) (new Query())
                 ->from(self::SUGGESTIONS)
                 ->where(['status' => self::STATUS_PENDING])
-                ->andWhere(['or', ['>=', 'asker_count', (int) Plugin::$plugin->getSettings()->suggestionMinAskers], ['origin' => self::ORIGIN_MANUAL]])
+                ->andWhere(['or', ['>=', 'asker_count', $this->minAskers()], ['origin' => self::ORIGIN_MANUAL]])
                 ->count();
         } catch (\Throwable $e) {
             return 0;
@@ -493,12 +616,57 @@ class SuggestionsService extends Component
     // -----------------------------------------------------------------
 
     /**
+     * How many clusters came out of visitors' questions rather than an admin.
+     */
+    public function harvestedCount(): int
+    {
+        try {
+            return (int) (new Query())
+                ->from(self::SUGGESTIONS)
+                ->where(['origin' => self::ORIGIN_HARVESTED])
+                ->count();
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Deletes every cluster that came out of a visitor's question, along with
+     * its variants. Questions an admin added themselves are left alone.
+     *
+     * Switching the mode away from moderated stops new questions being taken,
+     * but it does nothing about the ones already taken. This is what makes that
+     * choice mean something.
+     *
+     * @return int Clusters deleted.
+     */
+    public function forgetHarvested(): int
+    {
+        try {
+            $deleted = Craft::$app->getDb()->createCommand()
+                ->delete(self::SUGGESTIONS, ['origin' => self::ORIGIN_HARVESTED])
+                ->execute();
+
+            // The variants follow through the foreign key. The log rows keep
+            // their harvested_at on purpose: clearing it would only mean the
+            // next harvest collects again exactly what was just deleted.
+            $this->vectorCache = null;
+            $this->clusterCache = null;
+
+            return $deleted;
+        } catch (\Throwable $e) {
+            Craft::warning('SuggestionsService::forgetHarvested failed: ' . $e->getMessage(), 'synthese-engine');
+            return 0;
+        }
+    }
+
+    /**
      * Deletes log rows past the retention window. The suggestions survive:
      * they hold only the question text, never the IP hash it came with.
      */
     public function pruneLogs(?int $days = null): int
     {
-        $days = $days ?? (int) Plugin::$plugin->getSettings()->logRetentionDays;
+        $days = $days ?? $this->retentionDays();
         if ($days < 1) {
             return 0;
         }

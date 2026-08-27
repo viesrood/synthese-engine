@@ -16,6 +16,20 @@ use craft\base\Model;
  */
 class Settings extends Model
 {
+    public const MODE_OFF = 'off';
+    public const MODE_MANUAL = 'manual';
+    public const MODE_MODERATED = 'moderated';
+
+    /** @return array<string, string> value => label, for the settings screen. */
+    public static function suggestionModeOptions(): array
+    {
+        return [
+            self::MODE_MODERATED => 'Collect questions visitors ask, show them after approval',
+            self::MODE_MANUAL => 'Only questions I add myself; do not collect visitors\' questions',
+            self::MODE_OFF => 'No suggestions at all',
+        ];
+    }
+
     // ---------------------------------------------------------------------
     // Chunking
     // ---------------------------------------------------------------------
@@ -208,8 +222,19 @@ class Settings extends Model
     // Learned suggestions
     // ---------------------------------------------------------------------
 
-    /** Harvest asked questions and offer approved ones back to visitors. */
-    public bool $suggestionsEnabled = true;
+    /**
+     * What the suggestion chips may draw on. This is a privacy decision, so it
+     * belongs to whoever runs the site rather than to a config file: leave it
+     * out of `config/synthese-engine.php`, or Craft locks the field in the
+     * control panel and an admin can no longer change it.
+     *
+     * - MODE_OFF        no suggestions at all; only the fixed exampleQueries.
+     * - MODE_MANUAL     only questions an admin typed in themselves. Questions
+     *                   asked by visitors are not collected.
+     * - MODE_MODERATED  questions asked by visitors are collected and offered
+     *                   back once an admin approved them.
+     */
+    public string $suggestionMode = self::MODE_MODERATED;
 
     /**
      * How many different visitors must have asked something before it shows up
@@ -344,7 +369,8 @@ class Settings extends Model
             [['dailyBudgetUsd'], 'number', 'min' => 0],
             [['siteName', 'embeddingModel', 'synthesisModel', 'supabaseTable', 'matchRpc', 'ftsLanguage', 'timezone', 'routePrefix'], 'string'],
             [['includeSections', 'excludeSections', 'fieldConfig', 'blockFields', 'sectionBoosts', 'sectionContext', 'currentYearOnlySections', 'recentMonthsSections', 'sourceFormatters', 'noInfoPhrases', 'exampleQueries', 'suggestionBlocklist', 'defaultFields', 'pricing'], 'safe'],
-            [['autoIndex', 'suggestionsEnabled'], 'boolean'],
+            [['autoIndex'], 'boolean'],
+            [['suggestionMode'], 'in', 'range' => [self::MODE_OFF, self::MODE_MANUAL, self::MODE_MODERATED]],
         ];
     }
 }

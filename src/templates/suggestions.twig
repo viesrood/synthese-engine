@@ -8,22 +8,102 @@
 
 {% block content %}
 
-    {% if not settings.suggestionsEnabled %}
+    {# De privacykeuze staat hier en niet op het instellingenscherm: plugin-settings
+       zijn project config, en die wordt bij een deploy teruggezet. Deze drie staan
+       in de database, zodat de keuze van de beheerder blijft staan. #}
+    <div class="pane" style="margin-bottom:24px;">
+        <h2>Where suggestions come from</h2>
+        <p class="light">
+            The search page can offer visitors questions to click. Collecting means the text
+            of a question a visitor typed is stored as a candidate. Even then nothing reaches
+            the site until you approve it below.
+        </p>
+
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('synthese-engine/cp/save-suggestion-settings') }}
+            {{ redirectInput('synthese-engine/suggestions?status=' ~ status) }}
+
+            {{ forms.selectField({
+                label: 'Suggestions',
+                name: 'mode',
+                options: modeOptions,
+                value: mode,
+            }) }}
+
+            {{ forms.textField({
+                label: 'Different visitors before a question is offered for approval',
+                name: 'minAskers',
+                type: 'number',
+                min: 1,
+                value: minAskers,
+                instructions: 'Higher means fewer, more common questions, and less chance of one
+                    person\'s wording ending up on the site.',
+            }) }}
+
+            {{ forms.textField({
+                label: 'Days to keep search queries',
+                name: 'retentionDays',
+                type: 'number',
+                min: 0,
+                value: retentionDays,
+                instructions: 'The log table holds the text of every question asked next to a
+                    hashed IP address. Older rows are deleted by
+                    synthese-engine/suggestions/prune. 0 keeps everything, which is rarely what
+                    you want.',
+            }) }}
+
+            <button type="submit" class="btn submit">Save</button>
+        </form>
+    </div>
+
+    {% if mode != 'moderated' %}
         <div class="pane" style="margin-bottom:24px;">
             <p class="warning">
-                Suggestions are switched off (<code>suggestionsEnabled</code>). Questions are still
-                harvested and can be approved here, but visitors keep seeing the fixed
-                <code>exampleQueries</code>.
+                {% if mode == 'off' %}
+                    Suggestions are switched off. The search page shows the fixed example
+                    questions from the config file, and questions visitors ask are not
+                    collected.
+                {% else %}
+                    Only questions added by hand are used. Questions visitors ask are not
+                    collected, and anything harvested earlier is no longer shown, even if it
+                    was approved at the time.
+                {% endif %}
+                Change this under
+                <a href="{{ url('settings/plugins/synthese-engine') }}">Settings</a>.
             </p>
+
+            {% if harvestedCount > 0 %}
+                <p>
+                    There {{ harvestedCount == 1 ? 'is' : 'are' }} still <strong>{{ harvestedCount }}</strong>
+                    question{{ harvestedCount == 1 ? '' : 's' }} on file that came from visitors.
+                    They are not shown anywhere, but they are still stored.
+                </p>
+                <form method="post" accept-charset="UTF-8">
+                    {{ csrfInput() }}
+                    {{ actionInput(actionUrl) }}
+                    {{ redirectInput('synthese-engine/suggestions?status=' ~ status) }}
+                    {{ hiddenInput('op', 'forget') }}
+                    <button type="submit" class="btn delete"
+                            data-confirm="Delete all {{ harvestedCount }} questions that came from visitors? Questions you added yourself are kept. This cannot be undone.">
+                        Delete the {{ harvestedCount }} collected question{{ harvestedCount == 1 ? '' : 's' }}
+                    </button>
+                </form>
+            {% endif %}
         </div>
     {% endif %}
 
     <div class="pane" style="margin-bottom:24px;">
         <p>
-            Questions visitors asked, grouped by meaning. Nothing here reaches the site until you
-            approve it. A question only enters the queue once
-            <strong>{{ settings.suggestionMinAskers }}</strong> different visitors asked it and it
-            produced an answer with sources.
+            {% if mode == 'moderated' %}
+                Questions visitors asked, grouped by meaning. Nothing here reaches the site until
+                you approve it. A question only enters the queue once
+                <strong>{{ minAskers }}</strong> different visitors asked it and
+                it produced an answer with sources.
+            {% else %}
+                Questions you add here yourself. Collecting questions from visitors is switched
+                off, so the queue stays empty.
+            {% endif %}
         </p>
 
         <form method="post" accept-charset="UTF-8" style="margin-top:16px;">
@@ -54,12 +134,14 @@
 
         <div class="flex-grow"></div>
 
-        <form method="post" accept-charset="UTF-8">
-            {{ csrfInput() }}
-            {{ actionInput('synthese-engine/cp/harvest') }}
-            {{ redirectInput('synthese-engine/suggestions?status=' ~ status) }}
-            <button type="submit" class="btn">Harvest now</button>
-        </form>
+        {% if mode == 'moderated' %}
+            <form method="post" accept-charset="UTF-8">
+                {{ csrfInput() }}
+                {{ actionInput('synthese-engine/cp/harvest') }}
+                {{ redirectInput('synthese-engine/suggestions?status=' ~ status) }}
+                <button type="submit" class="btn">Harvest now</button>
+            </form>
+        {% endif %}
     </div>
 
     {% if rows|length == 0 %}
@@ -67,7 +149,7 @@
             <p>
                 {% if status == 'pending' %}
                     Nothing waiting. Either no question has been asked by
-                    {{ settings.suggestionMinAskers }} different visitors yet, or everything has
+                    {{ minAskers }} different visitors yet, or everything has
                     been dealt with.
                 {% elseif status == 'approved' %}
                     Nothing approved yet, so the chips fall back to the fixed

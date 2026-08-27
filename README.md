@@ -101,6 +101,22 @@ Questions visitors asked are harvested into clusters and offered back to other
 visitors, but only after an admin approves them in CP > Synthese Engine >
 Suggestions. Nothing typed by a visitor reaches the site on its own.
 
+**Whether any of that happens is the admin's call**, made on that same screen:
+
+- *collect and show after approval* (the default),
+- *only questions I add myself*, which stops collecting and hides anything
+  harvested earlier, approved or not,
+- *no suggestions at all*, which falls back to `exampleQueries`.
+
+A button on that screen deletes everything collected from visitors; questions
+added by hand survive it. `suggestions/forget` does the same from the console.
+
+That choice, `suggestionMinAskers` and `logRetentionDays` are stored in
+`{{%synthese_state}}`, not in the plugin settings. Plugin settings are project
+config, and a deploy that checks the repository out and re-applies it would put
+an admin's privacy choice back without anyone noticing. The plugin settings still
+hold the defaults.
+
 - `craft.synthese.suggestedQueries(limit)` returns the approved ones, pinned
   first, topped up from `exampleQueries` when there are not enough yet. That
   top-up is what makes it safe to switch on before there is any traffic.
@@ -153,6 +169,7 @@ Or config: `sourceFormatters` for simple per-section URL/title overrides.
 | `synthese-engine/suggestions/harvest [--verbose]` | Fold new log rows into suggestion clusters |
 | `synthese-engine/suggestions/prune [--days=N]` | Delete log rows past the retention window |
 | `synthese-engine/suggestions/list` | Print the queue and the approved list |
+| `synthese-engine/suggestions/forget` | Delete everything collected from visitors |
 
 ## License
 

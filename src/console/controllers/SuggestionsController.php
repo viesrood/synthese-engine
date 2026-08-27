@@ -47,6 +47,16 @@ class SuggestionsController extends Controller
 
         $stats = Plugin::$plugin->suggestions->harvest($progress);
 
+        if (!empty($stats['refused'])) {
+            $this->stdout(
+                'Nothing collected: the suggestion mode is "'
+                . Plugin::$plugin->getSettings()->suggestionMode
+                . '", so questions asked by visitors are left alone.' . PHP_EOL,
+                Console::FG_YELLOW
+            );
+            return ExitCode::OK;
+        }
+
         $this->stdout(PHP_EOL);
         $this->stdout("Log rows read      : {$stats['scanned']}" . PHP_EOL);
         $this->stdout("Not eligible       : {$stats['skipped']}" . PHP_EOL);
@@ -78,6 +88,29 @@ class SuggestionsController extends Controller
 
         $deleted = Plugin::$plugin->suggestions->pruneLogs($days);
         $this->stdout("{$deleted} log rows older than {$days} days deleted." . PHP_EOL, Console::FG_GREEN);
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Deletes every suggestion that came out of a visitor's question. Questions
+     * an admin added themselves are kept.
+     */
+    public function actionForget(): int
+    {
+        $count = Plugin::$plugin->suggestions->harvestedCount();
+
+        if ($count === 0) {
+            $this->stdout('Nothing collected from visitors is on file.' . PHP_EOL);
+            return ExitCode::OK;
+        }
+
+        if (!$this->confirm("Delete {$count} question(s) collected from visitors?")) {
+            return ExitCode::OK;
+        }
+
+        $deleted = Plugin::$plugin->suggestions->forgetHarvested();
+        $this->stdout("{$deleted} deleted." . PHP_EOL, Console::FG_GREEN);
 
         return ExitCode::OK;
     }
