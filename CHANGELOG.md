@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3.2 - 2026-08-28
+
+### Fixed
+- A site upgrading from the older `syntheseEngine` module kept that module's
+  `{{%synthese_logs}}`: the install migration left any table of that name
+  alone, and its columns are entirely different ones. Every write from
+  `StatsService::logQuery()` failed against it, and because that failure is
+  caught and logged as a warning, the only sign was a dashboard that stopped
+  filling up. Install and a new migration now recognise such a table by its
+  columns and replace it. The module's rows are dropped rather than converted:
+  they hold a full IP address next to free text a visitor typed, and none of
+  the retrieval measurements later features read.
+- Because of that, 1.2.0's migration aborted the whole update on those sites -
+  it read `is_answerable`, which the module's table does not have. It now
+  leaves a table it does not recognise to the migration that replaces it.
+
 ## 1.3.0 - 2026-08-27
 
 ### Added

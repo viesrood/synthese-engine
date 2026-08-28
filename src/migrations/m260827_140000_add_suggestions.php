@@ -6,6 +6,7 @@ namespace viesrood\synthese\migrations;
 
 use craft\db\Migration;
 use craft\db\Query;
+use viesrood\synthese\helpers\LogTable;
 use viesrood\synthese\helpers\QueryNormalizer;
 
 /**
@@ -49,7 +50,10 @@ class m260827_140000_add_suggestions extends Migration
 
     private function addLogColumns(): void
     {
-        if (!$this->db->tableExists(self::LOGS)) {
+        if (!$this->db->tableExists(self::LOGS) || LogTable::isLegacy($this->db)) {
+            // A log table left behind by the older module is replaced whole by
+            // m260828_090000_rebuild_module_log_table, which runs right after
+            // this one. Columns added to it here would be thrown away with it.
             return;
         }
 
@@ -129,7 +133,7 @@ class m260827_140000_add_suggestions extends Migration
      */
     private function backfillNormalizedQueries(): void
     {
-        if (!$this->db->tableExists(self::LOGS)) {
+        if (!$this->db->tableExists(self::LOGS) || LogTable::isLegacy($this->db)) {
             return;
         }
 

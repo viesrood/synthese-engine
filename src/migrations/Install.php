@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace viesrood\synthese\migrations;
 
 use craft\db\Migration;
+use viesrood\synthese\helpers\LogTable;
 
 /**
  * Install migration: creates the local log table `{{%synthese_logs}}` and the
@@ -38,33 +39,20 @@ class Install extends Migration
 
     private function createLogTable(): void
     {
+        if (LogTable::isLegacy($this->db)) {
+            // A log table left behind by the older `syntheseEngine` module.
+            // Its rows cannot be carried over: they hold a full IP address
+            // where this table holds a hash, and none of the retrieval
+            // measurements the plugin logs. See helpers/LogTable.
+            $this->dropTableIfExists(LogTable::TABLE);
+        }
+
         if ($this->db->tableExists(self::TABLE)) {
             return;
         }
 
-        $this->createTable(self::TABLE, [
-            'id' => $this->primaryKey(),
-            'query' => $this->string(500)->notNull(),
-            // Normalised form, so log rows can be grouped without re-deriving it.
-            'query_normalized' => $this->string(500)->notNull()->defaultValue(''),
-            'is_answerable' => $this->tinyInteger(1)->notNull()->defaultValue(0),
-            // 'answered', 'gated' or 'cached'. Unambiguous, unlike is_answerable.
-            'outcome' => $this->string(12)->notNull()->defaultValue('answered'),
-            'cache_hit' => $this->tinyInteger(1)->notNull()->defaultValue(0),
-            'top_score' => $this->decimal(8, 6)->defaultValue(0),
-            'score_spread' => $this->decimal(8, 6)->defaultValue(0),
-            'chunks_used' => $this->smallInteger()->defaultValue(0),
-            'sources_count' => $this->smallInteger()->notNull()->defaultValue(0),
-            'duration_ms' => $this->integer()->defaultValue(0),
-            'ip_hash' => $this->string(64)->defaultValue(''),
-            'created_at' => $this->dateTime()->notNull(),
-            'harvested_at' => $this->dateTime()->null(),
-        ]);
-
-        $this->createIndex(null, self::TABLE, ['created_at'], false);
-        $this->createIndex(null, self::TABLE, ['query_normalized'], false);
-        $this->createIndex(null, self::TABLE, ['outcome'], false);
-        $this->createIndex(null, self::TABLE, ['harvested_at'], false);
+        $this->createTable(self::TABLE, LogTable::definition($this));
+        LogTable::createIndexes($this);
     }
 
     /**
