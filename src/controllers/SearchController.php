@@ -211,9 +211,11 @@ class SearchController extends Controller
         $cache = Craft::$app->getCache();
         $ip = $this->getUserIp();
 
-        $keyMinute = 'synthese_ratelimit_minute_' . $ip;
-        $keyHour = 'synthese_ratelimit_hour_' . $ip;
-        $keyDay = 'synthese_ratelimit_day_' . date('Y-m-d') . '_' . $ip;
+        $token = $this->ipCacheToken($ip);
+
+        $keyMinute = 'synthese_ratelimit_minute_' . $token;
+        $keyHour = 'synthese_ratelimit_hour_' . $token;
+        $keyDay = 'synthese_ratelimit_day_' . date('Y-m-d') . '_' . $token;
 
         $countMinute = (int) ($cache->get($keyMinute) ?: 0);
         $countHour = (int) ($cache->get($keyHour) ?: 0);
@@ -250,6 +252,25 @@ class SearchController extends Controller
         return $request->getUserIP() ?? 'unknown';
     }
 
+    /**
+     * Turns an IP into an opaque token for use in cache keys.
+     *
+     * The rate limiter needs to recognise the same visitor again; it does not
+     * need to be able to read back who that was. Keying the cache on the raw
+     * address meant plain IP addresses sat in the cache backend for up to a
+     * day (the daily counter runs until midnight) while the database only ever
+     * held a hash of them, so the cache quietly became the least protected copy
+     * of the most identifying field.
+     *
+     * Same salt as StatsService::hashIp(), so the two stay consistent, and
+     * truncated because a cache key only has to be unique, not verifiable.
+     */
+    private function ipCacheToken(string $ip): string
+    {
+        $salt = Craft::$app->getConfig()->getGeneral()->securityKey ?? '';
+        return substr(hash('sha256', $ip . $salt), 0, 32);
+    }
+
     private function isBot(int $rapidThreshold): bool
     {
         $request = Craft::$app->getRequest();
@@ -270,7 +291,7 @@ class SearchController extends Controller
         // Honeypot: two requests within 500ms from the same IP = likely automated.
         $cache = Craft::$app->getCache();
         $ip = $this->getUserIp();
-        $timingKey = 'synthese_timing_' . $ip;
+        $timingKey = 'synthese_timing_' . $this->ipCacheToken($ip);
         $lastRequest = $cache->get($timingKey);
         $now = microtime(true);
         $cache->set($timingKey, $now, 5);
