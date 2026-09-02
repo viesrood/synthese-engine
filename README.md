@@ -143,7 +143,11 @@ leaves the judgement calls to the person working the queue.
 
 Because the log table holds free text typed by visitors next to a stable IP
 hash, `logRetentionDays` (default 90) and the `prune` command are not optional
-extras. Approved suggestions survive pruning: they carry the question text only.
+extras. `prune` clears two things: log rows past the window, and harvested
+questions that were never approved and have not been asked again since. Approved
+suggestions survive it - by then an admin has read them and they are content on
+the site rather than a log line. Questions an admin typed themselves are never
+touched.
 
 ## Extension points
 
@@ -167,7 +171,7 @@ Or config: `sourceFormatters` for simple per-section URL/title overrides.
 | `synthese-engine/stats/recent [n]` | Recent searches |
 | `synthese-engine/setup/supabase` | Generate the Supabase SQL |
 | `synthese-engine/suggestions/harvest [--verbose]` | Fold new log rows into suggestion clusters |
-| `synthese-engine/suggestions/prune [--days=N]` | Delete log rows past the retention window |
+| `synthese-engine/suggestions/prune [--days=N]` | Delete log rows and unapproved harvested questions past the retention window |
 | `synthese-engine/suggestions/list` | Print the queue and the approved list |
 | `synthese-engine/suggestions/forget` | Delete everything collected from visitors |
 

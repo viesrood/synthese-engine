@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.3 - 2026-09-02
+
+### Fixed
+- `suggestions/prune` read the retention window from the plugin settings
+  instead of from `{{%synthese_state}}`, so it ignored the number an admin set
+  in the control panel and used the developer's default instead. The control
+  panel showed one figure while the nightly cron enforced another, which
+  defeated the reason that setting lives in the state table at all.
+- Harvested questions had no retention. `prune` only ever touched the log
+  table, so a question stuck on pending or rejected kept the visitor's exact
+  wording, and an embedding of it, for as long as the database existed - long
+  after the log row it was built from had gone. `prune` now also deletes
+  harvested questions that are not approved and have not been asked again
+  within the window, measured on `last_asked_at` so one still being asked stays
+  in the queue. Approved questions and anything an admin typed are left alone.
+
+### Changed
+- The rate limiter and the bot honeypot keyed Craft's cache on the raw IP
+  address, with the daily counter living until midnight. The database only ever
+  held a salted hash, so the cache was the least protected copy of the most
+  identifying field. Both now use the same salted hash.
+
 ## 1.3.2 - 2026-08-28
 
 ### Fixed

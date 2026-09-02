@@ -661,8 +661,8 @@ class SuggestionsService extends Component
     }
 
     /**
-     * Deletes log rows past the retention window. The suggestions survive:
-     * they hold only the question text, never the IP hash it came with.
+     * Deletes log rows past the retention window. Harvested questions that were
+     * never approved go separately, see pruneSuggestions().
      */
     public function pruneLogs(?int $days = null): int
     {
@@ -679,6 +679,53 @@ class SuggestionsService extends Component
                 ->execute();
         } catch (\Throwable $e) {
             Craft::warning('SuggestionsService::pruneLogs failed: ' . $e->getMessage(), 'synthese-engine');
+            return 0;
+        }
+    }
+
+    /**
+     * Deletes harvested questions that were never approved and have not been
+     * asked again within the retention window.
+     *
+     * Pruning the log table alone was not enough. A harvested suggestion holds
+     * the visitor's wording verbatim plus an embedding of it, and until this
+     * existed nothing ever removed those: a question stuck on pending or
+     * rejected outlived by years the log row it was built from. That made the
+     * retention promise on the site untrue for the one table that keeps the
+     * text longest.
+     *
+     * Three deliberate choices:
+     *
+     * - Only `harvested`. What an admin typed themselves is their own content
+     *   and has no visitor behind it, exactly as in forgetHarvested().
+     * - Only pending and rejected. An approved question is published content by
+     *   then; removing it would make suggestions vanish from the site on a
+     *   timer, which is an editorial decision and not this method's call.
+     * - Measured on `last_asked_at`, not on dateCreated. A question visitors
+     *   keep asking stays in the queue instead of expiring out from under the
+     *   admin who still has to review it. Rows predating this column fall back
+     *   to dateCreated so they cannot linger forever on a NULL.
+     */
+    public function pruneSuggestions(?int $days = null): int
+    {
+        $days = $days ?? $this->retentionDays();
+        if ($days < 1) {
+            return 0;
+        }
+
+        $cutoff = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+
+        try {
+            return Craft::$app->getDb()->createCommand()
+                ->delete(self::SUGGESTIONS, [
+                    'and',
+                    ['origin' => self::ORIGIN_HARVESTED],
+                    ['status' => [self::STATUS_PENDING, self::STATUS_REJECTED]],
+                    ['<', new Expression('COALESCE([[last_asked_at]], [[dateCreated]])'), $cutoff],
+                ])
+                ->execute();
+        } catch (\Throwable $e) {
+            Craft::warning('SuggestionsService::pruneSuggestions failed: ' . $e->getMessage(), 'synthese-engine');
             return 0;
         }
     }

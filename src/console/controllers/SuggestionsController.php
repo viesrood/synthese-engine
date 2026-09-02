@@ -74,12 +74,25 @@ class SuggestionsController extends Controller
     }
 
     /**
-     * Deletes log rows past the retention window. The suggestions stay: they
-     * hold the question text only, never the IP hash it arrived with.
+     * Deletes log rows past the retention window, plus the harvested questions
+     * that were never approved.
+     *
+     * The retention window comes from the service, not from the settings
+     * model. Those two can differ: the number an admin sets in the control
+     * panel is stored in the state table on purpose, because plugin settings
+     * are project config and a deploy would put an admin's shortened retention
+     * back to the developer's default. Reading the settings here would have
+     * meant the control panel showed one number while this cron enforced
+     * another.
+     *
+     * Approved suggestions are left alone. By the time an admin approves one it
+     * is editorial content on the site, not a visitor's log line. Everything
+     * still pending or rejected is a question a visitor typed that will never
+     * be shown, so it goes the same way as the log rows it came from.
      */
     public function actionPrune(): int
     {
-        $days = $this->days ?? Plugin::$plugin->getSettings()->logRetentionDays;
+        $days = $this->days ?? Plugin::$plugin->suggestions->retentionDays();
 
         if ($days < 1) {
             $this->stdout('Retention is 0, nothing pruned.' . PHP_EOL, Console::FG_YELLOW);
@@ -88,6 +101,9 @@ class SuggestionsController extends Controller
 
         $deleted = Plugin::$plugin->suggestions->pruneLogs($days);
         $this->stdout("{$deleted} log rows older than {$days} days deleted." . PHP_EOL, Console::FG_GREEN);
+
+        $dropped = Plugin::$plugin->suggestions->pruneSuggestions($days);
+        $this->stdout("{$dropped} unapproved harvested question(s) older than {$days} days deleted." . PHP_EOL, Console::FG_GREEN);
 
         return ExitCode::OK;
     }
